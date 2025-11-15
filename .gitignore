@@ -1,0 +1,201 @@
+# Build directories
+build/
+out/
+bin/
+lib/
+cmake-build-*/
+.cache/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# vcpkg
+vcpkg_installed/
+.vcpkg/
+
+# C++
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.exp
+*.pdb
+*.ilk
+*.idb
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so.*
+*.dylib
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.lo
+
+# Executables
+*.exe
+*.out
+*.app
+
+# IDE specific
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.DS_Store
+
+# Visual Studio
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+.vs/
+x64/
+x86/
+Debug/
+Release/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# CLion
+cmake-build-*/
+
+# QtCreator
+*.autosave
+*.config
+*.creator
+*.creator.user
+*.files
+*.includes
+
+# Conan
+conanfile.txt.user
+conaninfo.txt
+conanbuildinfo.*
+*.cmake
+
+# Profilers
+*.trace
+*.tracy
+
+# Logs
+*.log
+logs/
+
+# Assets (временные)
+assets/*.tmp
+assets/**/*.bak
+assets/**/*.old
+
+# Database files (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+*.orig
+
+# OS specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Package managers
+node_modules/
+package-lock.json
+yarn.lock
+
+# Documentation
+docs/html/
+docs/latex/
+docs/generated/
+*.pdf
+*.html
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test results
+test_results/
+TestResults/
+*.testlog
+*.trs
+
+# Coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+htmlcov/
+
+# Sanitizers
+*.san
+
+# Doxygen
+docs/doxygen/html/
+docs/doxygen/latex/
+
+# Tracy profiler
+*.tracy
+
+# Project specific
+screenshots/
+recordings/
+saves/
+user_projects/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Miscellaneous
+*.stackdump
+core
+vgcore.*

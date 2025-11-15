@@ -1,0 +1,56 @@
+{
+  "name": "opc-game-simulator",
+  "version": "0.1.0",
+  "description": "2D PLC Simulator with OPC UA integration",
+  "homepage": "https://github.com/yourusername/opc-game-sim",
+  "license": "MIT",
+  "dependencies": [
+    "sfml",
+    "entt",
+    "box2d",
+    "tmxlite",
+    "open62541",
+    "lua",
+    "sol2",
+    "boost-signals2",
+    "nlohmann-json",
+    "yaml-cpp",
+    "sqlite3",
+    "spdlog",
+    "fmt",
+    "asio",
+    {
+      "name": "imgui",
+      "features": ["docking-experimental"]
+    },
+    "implot",
+    "catch2"
+  ],
+  "features": {
+    "modbus": {
+      "description": "Enable Modbus TCP/RTU protocol support",
+      "dependencies": [
+        "libmodbus"
+      ]
+    },
+    "openal": {
+      "description": "Enable OpenAL for 3D positional audio",
+      "dependencies": [
+        "openal-soft"
+      ]
+    },
+    "tracy": {
+      "description": "Enable Tracy profiler integration",
+      "dependencies": [
+        "tracy"
+      ]
+    },
+    "thor": {
+      "description": "Enable Thor library for particles and animations",
+      "dependencies": [
+        "thor"
+      ]
+    }
+  },
+  "builtin-baseline": "0804e3b55b7e435c593707071052363fa876f170"
+}
