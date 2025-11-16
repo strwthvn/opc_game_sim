@@ -73,6 +73,18 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& pa
     return true;
 }
 
+bool ResourceManager::loadTextureFromImage(const std::string& name, const sf::Image& image) {
+    sf::Texture texture;
+    if (!texture.loadFromImage(image)) {
+        LOG_WARN("Failed to load texture from image: {}", name);
+        return false;
+    }
+
+    m_textures[name] = std::move(texture);
+    LOG_DEBUG("Texture loaded from image: {}", name);
+    return true;
+}
+
 bool ResourceManager::hasFont(const std::string& name) const {
     return m_fonts.find(name) != m_fonts.end();
 }

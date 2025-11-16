@@ -14,6 +14,8 @@ target_sources(Core
         states/MenuState.cpp
         states/GameState.cpp
         states/PauseState.cpp
+        systems/RenderSystem.cpp
+        systems/UpdateSystem.cpp
 )
 
 target_include_directories(Core

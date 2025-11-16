@@ -3,8 +3,14 @@
 #include "core/State.h"
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
+#include <entt/entt.hpp>
+#include <memory>
 
 namespace core {
+
+// Forward declarations
+class RenderSystem;
+class UpdateSystem;
 
 /**
  * @brief Состояние игрового процесса
@@ -27,7 +33,7 @@ public:
     /**
      * @brief Деструктор
      */
-    ~GameState() override = default;
+    ~GameState() override;
 
     void onEnter() override;
     void onExit() override;
@@ -52,6 +58,11 @@ private:
     // Временные переменные для демонстрации
     double m_elapsedTime;                      ///< Время с начала игры
     int m_updateCount;                         ///< Счетчик обновлений
+
+    // ECS
+    entt::registry m_registry;                 ///< EnTT registry для управления сущностями
+    std::unique_ptr<RenderSystem> m_renderSystem;  ///< Система рендеринга
+    std::unique_ptr<UpdateSystem> m_updateSystem;  ///< Система обновления
 
     // Размеры и позиции UI
     static constexpr unsigned int INFO_TEXT_FONT_SIZE = 24;

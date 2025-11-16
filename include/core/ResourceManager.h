@@ -71,6 +71,14 @@ public:
     bool loadTexture(const std::string& name, const std::string& path);
 
     /**
+     * @brief Загружает текстуру из SFML Image
+     * @param name Имя текстуры для идентификации
+     * @param image Изображение для загрузки
+     * @return true если успешно загружено
+     */
+    bool loadTextureFromImage(const std::string& name, const sf::Image& image);
+
+    /**
      * @brief Проверяет, загружен ли шрифт
      * @param name Имя шрифта
      * @return true если шрифт загружен
