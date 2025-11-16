@@ -197,5 +197,4 @@ user_projects/
 
 # Miscellaneous
 *.stackdump
-core
 vgcore.*
