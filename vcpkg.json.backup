@@ -9,6 +9,7 @@
     "entt",
     "box2d",
     "tmxlite",
+    "open62541",
     "lua",
     "sol2",
     "boost-signals2",
