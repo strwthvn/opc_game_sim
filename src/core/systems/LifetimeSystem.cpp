@@ -1,6 +1,8 @@
 #include "core/systems/LifetimeSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
+#include <algorithm>
+#include <cstdint>
 
 namespace core {
 
@@ -12,6 +14,9 @@ void LifetimeSystem::update(entt::registry& registry, double dt) {
     std::vector<entt::entity> entitiesToDestroy;
 
     for (auto entity : view) {
+        // Обрабатываем сущность (fade-out эффекты и т.д.)
+        processEntity(registry, entity, dt);
+
         auto& lifetime = view.get<LifetimeComponent>(entity);
 
         // Уменьшаем время жизни
@@ -38,8 +43,35 @@ void LifetimeSystem::update(entt::registry& registry, double dt) {
 }
 
 void LifetimeSystem::processEntity(entt::registry& registry, entt::entity entity, double dt) {
-    // Эта функция может быть расширена для более сложной логики
-    // Например, события перед уничтожением, fade-out эффекты и т.д.
+    auto& lifetime = registry.get<LifetimeComponent>(entity);
+
+    // Применяем fade-out эффект если включен и есть SpriteComponent
+    if (lifetime.fadeOut && registry.all_of<SpriteComponent>(entity)) {
+        auto& sprite = registry.get<SpriteComponent>(entity);
+
+        // Вычисляем порог начала затухания
+        float fadeThreshold = lifetime.initialLifetime * lifetime.fadeStartRatio;
+
+        if (lifetime.lifetime <= fadeThreshold && fadeThreshold > 0.0f) {
+            // Вычисляем прогресс затухания (1.0 -> 0.0)
+            float fadeProgress = lifetime.lifetime / fadeThreshold;
+            fadeProgress = std::clamp(fadeProgress, 0.0f, 1.0f);
+
+            // Применяем к альфа-каналу цвета
+            auto alpha = static_cast<std::uint8_t>(255.0f * fadeProgress);
+            sprite.color = sf::Color(
+                sprite.color.r,
+                sprite.color.g,
+                sprite.color.b,
+                alpha
+            );
+        }
+    }
+
+    // Здесь можно добавить дополнительную логику:
+    // - События перед уничтожением (onAboutToDestroy callback)
+    // - Звуковые эффекты при уничтожении
+    // - Spawn эффектов частиц
 }
 
 } // namespace core

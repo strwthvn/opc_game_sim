@@ -53,7 +53,7 @@ const sf::Texture& ResourceManager::getTexture(const std::string& path) {
     }
 
     // Не найден в кеше - пытаемся загрузить
-    if (loadTexture(path, path)) {
+    if (loadTexture(path)) {
         return m_textures.at(path);
     }
 
@@ -84,6 +84,10 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& pa
     m_textures[name] = std::move(texture);
     LOG_DEBUG("Texture loaded: {} from {}", name, path);
     return true;
+}
+
+bool ResourceManager::loadTexture(const std::string& path) {
+    return loadTexture(path, path);
 }
 
 bool ResourceManager::loadTextureFromImage(const std::string& name, const sf::Image& image) {

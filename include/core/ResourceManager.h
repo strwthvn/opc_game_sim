@@ -71,6 +71,13 @@ public:
     bool loadTexture(const std::string& name, const std::string& path);
 
     /**
+     * @brief Загружает текстуру из файла (имя = путь)
+     * @param path Путь к файлу текстуры (также используется как имя)
+     * @return true если успешно загружено
+     */
+    bool loadTexture(const std::string& path);
+
+    /**
      * @brief Загружает текстуру из SFML Image
      * @param name Имя текстуры для идентификации
      * @param image Изображение для загрузки

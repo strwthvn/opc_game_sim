@@ -2,10 +2,13 @@
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <entt/entt.hpp>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <algorithm>
+#include <optional>
 
 namespace core {
 
@@ -25,7 +28,8 @@ struct TransformComponent {
 /**
  * @brief Компонент спрайта
  *
- * Хранит информацию о текстуре и отрисовке
+ * Хранит информацию о текстуре и отрисовке.
+ * Включает кеширование sf::Sprite для оптимизации hot path.
  */
 struct SpriteComponent {
     std::string textureName;     ///< Имя текстуры в ResourceManager
@@ -33,6 +37,17 @@ struct SpriteComponent {
     sf::Color color;             ///< Цвет модуляции (белый = без изменений)
     int layer = 0;               ///< Слой отрисовки (меньше = раньше)
     bool visible = true;         ///< Видимость спрайта
+
+    // Кеш для оптимизации рендеринга (избегаем создания sf::Sprite каждый кадр)
+    mutable std::optional<sf::Sprite> cachedSprite;  ///< Кешированный SFML спрайт
+    mutable bool dirty = true;   ///< Флаг необходимости обновления кеша
+
+    /**
+     * @brief Помечает кеш как требующий обновления
+     */
+    void markDirty() const {
+        dirty = true;
+    }
 
     /**
      * @brief Конструктор по умолчанию
@@ -42,7 +57,9 @@ struct SpriteComponent {
         , textureRect()  // Default constructor
         , color(sf::Color::White)
         , layer(0)
-        , visible(true) {
+        , visible(true)
+        , cachedSprite(std::nullopt)
+        , dirty(true) {
     }
 
     /**
@@ -54,7 +71,9 @@ struct SpriteComponent {
         , textureRect()  // Default constructor
         , color(sf::Color::White)
         , layer(0)
-        , visible(true) {
+        , visible(true)
+        , cachedSprite(std::nullopt)
+        , dirty(true) {
     }
 };
 
@@ -111,10 +130,17 @@ struct TagComponent {
  */
 struct LifetimeComponent {
     float lifetime = 1.0f;       ///< Оставшееся время жизни (секунды)
+    float initialLifetime = 1.0f; ///< Начальное время жизни (для расчёта прогресса)
     bool autoDestroy = true;     ///< Автоматически уничтожать по истечению
+    bool fadeOut = false;        ///< Плавное затухание перед уничтожением
+    float fadeStartRatio = 0.3f; ///< Когда начинать fade (0.3 = последние 30% времени)
 
-    explicit LifetimeComponent(float time = 1.0f, bool destroy = true)
-        : lifetime(time), autoDestroy(destroy) {}
+    explicit LifetimeComponent(float time = 1.0f, bool destroy = true, bool fade = false)
+        : lifetime(time)
+        , initialLifetime(time)
+        , autoDestroy(destroy)
+        , fadeOut(fade)
+        , fadeStartRatio(0.3f) {}
 };
 
 /**
@@ -148,20 +174,26 @@ struct ParentComponent {
 /**
  * @brief Компонент для хранения дочерних сущностей
  *
- * Автоматически обновляется системами при добавлении ParentComponent
+ * Автоматически обновляется системами при добавлении ParentComponent.
+ * Использует unordered_set для O(1) операций добавления/удаления/проверки.
  */
 struct ChildrenComponent {
-    std::vector<entt::entity> children;  ///< Список дочерних сущностей
+    std::unordered_set<entt::entity> children;  ///< Множество дочерних сущностей
 
     void addChild(entt::entity child) {
-        children.push_back(child);
+        children.insert(child);
     }
 
     void removeChild(entt::entity child) {
-        children.erase(
-            std::remove(children.begin(), children.end(), child),
-            children.end()
-        );
+        children.erase(child);
+    }
+
+    bool hasChild(entt::entity child) const {
+        return children.contains(child);
+    }
+
+    size_t childCount() const {
+        return children.size();
     }
 };
 

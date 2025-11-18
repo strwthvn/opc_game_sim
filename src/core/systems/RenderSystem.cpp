@@ -66,22 +66,30 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             // Получаем текстуру из ResourceManager
             const sf::Texture& texture = m_resourceManager->getTexture(spriteComp.textureName);
 
-            // Создаем SFML спрайт (требуется текстура в конструкторе в SFML 3)
-            sf::Sprite sprite(texture);
+            // Используем кешированный спрайт или создаем новый
+            if (spriteComp.dirty || !spriteComp.cachedSprite.has_value()) {
+                // Создаем или пересоздаем спрайт
+                spriteComp.cachedSprite.emplace(texture);
+                sf::Sprite& sprite = *spriteComp.cachedSprite;
 
-            // Устанавливаем прямоугольник текстуры если указан
-            if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
-                sprite.setTextureRect(spriteComp.textureRect);
+                // Устанавливаем прямоугольник текстуры если указан
+                if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
+                    sprite.setTextureRect(spriteComp.textureRect);
+                }
+
+                // Устанавливаем цвет модуляции
+                sprite.setColor(spriteComp.color);
+
+                // Устанавливаем origin в центр спрайта для корректного вращения
+                sf::FloatRect bounds = sprite.getLocalBounds();
+                sprite.setOrigin(bounds.size / 2.0f);
+
+                spriteComp.dirty = false;
             }
 
-            // Устанавливаем цвет модуляции
-            sprite.setColor(spriteComp.color);
+            sf::Sprite& sprite = *spriteComp.cachedSprite;
 
-            // Устанавливаем origin в центр спрайта для корректного вращения
-            sf::FloatRect bounds = sprite.getLocalBounds();
-            sprite.setOrigin(bounds.size / 2.0f);
-
-            // Применяем трансформацию (SFML 3 uses Vector2f and sf::Angle)
+            // Применяем трансформацию каждый кадр (SFML 3 uses Vector2f and sf::Angle)
             sprite.setPosition(sf::Vector2f(transform.x, transform.y));
             sprite.setRotation(sf::degrees(transform.rotation));
             sprite.setScale(sf::Vector2f(transform.scaleX, transform.scaleY));
