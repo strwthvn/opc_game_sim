@@ -9,22 +9,35 @@ ResourceManager::ResourceManager() {
 }
 
 const sf::Font& ResourceManager::getFont(const std::string& name) {
+    LOG_DEBUG("ResourceManager::getFont called for: {}", name);
+
     // Проверяем кеш
     auto it = m_fonts.find(name);
     if (it != m_fonts.end()) {
+        LOG_DEBUG("Font '{}' found in cache", name);
         return it->second;
     }
+
+    LOG_DEBUG("Font '{}' not in cache, attempting to load...", name);
 
     // Не найден в кеше - пытаемся загрузить
     if (name == "default") {
         // Загружаем системный шрифт
+        LOG_DEBUG("Loading default system font...");
         std::string fontPath = getSystemFontPath();
         if (!fontPath.empty()) {
+            LOG_DEBUG("System font path found: {}, loading...", fontPath);
             if (loadFont(name, fontPath)) {
                 LOG_INFO("Loaded default system font: {}", fontPath);
                 return m_fonts.at(name);
+            } else {
+                LOG_ERROR("Failed to load font from path: {}", fontPath);
             }
+        } else {
+            LOG_ERROR("No system font path found");
         }
+    } else {
+        LOG_WARN("Font name '{}' is not 'default' and no path specified", name);
     }
 
     // Не удалось загрузить
@@ -101,6 +114,8 @@ void ResourceManager::clear() {
 }
 
 std::string ResourceManager::getSystemFontPath() const {
+    LOG_DEBUG("Searching for system font...");
+
     // Пытаемся найти системный шрифт в зависимости от платформы
     const std::vector<std::string> fontPaths = {
 #ifdef __linux__
@@ -121,14 +136,18 @@ std::string ResourceManager::getSystemFontPath() const {
 
     // Проверяем каждый путь
     for (const auto& path : fontPaths) {
+        LOG_DEBUG("Trying font path: {}", path);
         sf::Font testFont;
         if (testFont.openFromFile(path)) {
+            LOG_INFO("Successfully found system font: {}", path);
             return path;
+        } else {
+            LOG_DEBUG("Failed to load font from: {}", path);
         }
     }
 
     // Не найден ни один системный шрифт
-    LOG_WARN("No system font found");
+    LOG_ERROR("No system font found! Tried {} paths", fontPaths.size());
     return "";
 }
 

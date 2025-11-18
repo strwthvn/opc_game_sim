@@ -93,6 +93,12 @@ public:
      */
     virtual bool renderBelow() const { return false; }
 
+    /**
+     * @brief Вызывается при изменении размера окна
+     * @param newSize Новый размер окна
+     */
+    virtual void onWindowResize(const sf::Vector2u& newSize) { (void)newSize; }
+
 protected:
     StateManager* m_stateManager;  ///< Указатель на менеджер состояний
 

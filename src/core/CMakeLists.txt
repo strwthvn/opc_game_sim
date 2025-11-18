@@ -16,6 +16,7 @@ target_sources(Core
         states/PauseState.cpp
         systems/RenderSystem.cpp
         systems/UpdateSystem.cpp
+        systems/LifetimeSystem.cpp
 )
 
 target_include_directories(Core

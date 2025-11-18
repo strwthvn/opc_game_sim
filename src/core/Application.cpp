@@ -139,6 +139,13 @@ void Application::processEvents() {
             m_window->close();
         }
 
+        // Обработка изменения размера окна
+        if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+            LOG_DEBUG("Window resized to {}x{}", resized->size.x, resized->size.y);
+            // Уведомляем StateManager об изменении размера
+            m_stateManager->handleWindowResize(resized->size);
+        }
+
         // Передаем событие в InputManager для отслеживания состояний
         m_inputManager->handleEvent(*event);
 
@@ -153,6 +160,12 @@ void Application::update(double dt) {
 }
 
 void Application::render() {
+    static int renderCount = 0;
+    if (renderCount == 0) {
+        LOG_INFO("Application::render() called for the first time");
+    }
+    renderCount++;
+
     // Очистка экрана темно-серым цветом (промышленная тема)
     m_window->clear(ApplicationConstants::BACKGROUND_COLOR);
 
@@ -161,6 +174,10 @@ void Application::render() {
 
     // Отображение кадра
     m_window->display();
+
+    if (renderCount % 300 == 0) {
+        LOG_DEBUG("Application::render() called {} times", renderCount);
+    }
 }
 
 } // namespace core

@@ -53,6 +53,15 @@ void StateManager::handleEvent(const sf::Event& event) {
     }
 }
 
+void StateManager::handleWindowResize(const sf::Vector2u& newSize) {
+    LOG_DEBUG("StateManager notifying {} states about window resize to {}x{}",
+              m_states.size(), newSize.x, newSize.y);
+    // Уведомляем все состояния об изменении размера окна
+    for (auto& state : m_states) {
+        state->onWindowResize(newSize);
+    }
+}
+
 void StateManager::update(double dt) {
     // Обновляем состояния с вершины стека вниз
     // Останавливаемся на первом состоянии, которое не разрешает обновление нижних
@@ -69,21 +78,40 @@ void StateManager::update(double dt) {
 }
 
 void StateManager::render(sf::RenderWindow& window) {
-    // Находим самое нижнее состояние, которое нужно отрисовать
-    auto it = m_states.rbegin();
-    while (it != m_states.rend()) {
-        if (!(*it)->renderBelow()) {
-            break;
-        }
-        ++it;
+    static int renderCount = 0;
+    if (renderCount == 0) {
+        LOG_INFO("StateManager::render() called for the first time. States count: {}", m_states.size());
+    }
+    renderCount++;
+
+    if (m_states.empty()) {
+        LOG_WARN("StateManager::render() called but no states exist!");
+        return;
     }
 
-    // Отрисовываем состояния снизу вверх
-    if (it != m_states.rend()) {
-        auto forwardIt = it.base();
-        for (auto renderIt = forwardIt; renderIt != m_states.end(); ++renderIt) {
-            (*renderIt)->render(window);
+    // Находим самое нижнее состояние, с которого начинать рендеринг
+    // Идем снизу вверх (от начала к концу стека)
+    size_t startIndex = 0;
+
+    // Проходим снизу вверх, ищем первое состояние, которое НЕ хочет рендерить под собой
+    for (size_t i = 0; i < m_states.size(); ++i) {
+        if (!m_states[i]->renderBelow()) {
+            // Это состояние не хочет рендерить под собой - начинаем с него
+            startIndex = i;
+            break;
         }
+    }
+
+    // Рендерим все состояния начиная с startIndex
+    for (size_t i = startIndex; i < m_states.size(); ++i) {
+        if (renderCount == 1) {
+            LOG_DEBUG("Rendering state {}: {}", i, m_states[i]->getName());
+        }
+        m_states[i]->render(window);
+    }
+
+    if (renderCount % 300 == 0) {
+        LOG_DEBUG("StateManager::render() called {} times", renderCount);
     }
 }
 

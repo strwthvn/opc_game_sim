@@ -4,6 +4,7 @@
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/View.hpp>
 #include <vector>
 
 namespace core {
@@ -36,6 +37,7 @@ public:
     bool handleEvent(const sf::Event& event) override;
     void update(double dt) override;
     void render(sf::RenderWindow& window) override;
+    void onWindowResize(const sf::Vector2u& newSize) override;
     std::string getName() const override { return "PauseState"; }
 
     // Не обновляем игру под паузой
@@ -86,13 +88,16 @@ private:
     sf::RectangleShape m_overlay;              ///< Полупрозрачный оверлей
     int m_selectedItem;                        ///< Индекс выбранного пункта
     bool m_fontLoaded;                         ///< Флаг загрузки шрифта
+    sf::View m_uiView;                         ///< Фиксированный View для UI
 
     // Цвета
     static constexpr auto SELECTED_COLOR = sf::Color::Yellow;
     static constexpr auto NORMAL_COLOR = sf::Color::White;
     static constexpr auto TITLE_COLOR = sf::Color(255, 100, 100);
 
-    // Размеры и позиции
+    // Размеры и позиции (в координатах фиксированного UI View 1280x720)
+    static constexpr unsigned int UI_WIDTH = 1280;
+    static constexpr unsigned int UI_HEIGHT = 720;
     static constexpr unsigned int TITLE_FONT_SIZE = 64;
     static constexpr unsigned int MENU_ITEM_FONT_SIZE = 32;
     static constexpr float TITLE_X = 500.0f;

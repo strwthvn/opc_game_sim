@@ -13,10 +13,18 @@ PauseState::PauseState(StateManager* stateManager)
     , m_font(nullptr)
     , m_selectedItem(0)
     , m_fontLoaded(false) {
+    // UI View будет инициализирован в onEnter() когда размер окна известен
 }
 
 void PauseState::onEnter() {
     LOG_INFO("Entering PauseState");
+
+    // Инициализируем UI View размером окна (1:1 пиксели)
+    auto windowSize = getWindowSize();
+    m_uiView.setSize(sf::Vector2f(windowSize.x, windowSize.y));
+    m_uiView.setCenter(sf::Vector2f(windowSize.x / 2.0f, windowSize.y / 2.0f));
+    LOG_DEBUG("PauseState UI View initialized: {}x{} (window size)", windowSize.x, windowSize.y);
+
     initializeMenu();
 }
 
@@ -61,7 +69,23 @@ void PauseState::update(double dt) {
     (void)dt; // Пока нет анимаций
 }
 
+void PauseState::onWindowResize(const sf::Vector2u& newSize) {
+    LOG_DEBUG("PauseState received window resize event: {}x{}", newSize.x, newSize.y);
+
+    // Обновляем UI View размером окна (1:1 пиксели для четкого текста)
+    m_uiView.setSize(sf::Vector2f(newSize.x, newSize.y));
+    m_uiView.setCenter(sf::Vector2f(newSize.x / 2.0f, newSize.y / 2.0f));
+
+    // Пересоздаем меню с новыми позициями
+    if (m_fontLoaded) {
+        initializeMenu();
+    }
+}
+
 void PauseState::render(sf::RenderWindow& window) {
+    // Устанавливаем фиксированный UI View для рендеринга меню паузы
+    window.setView(m_uiView);
+
     // Рисуем полупрозрачный оверлей (всегда, даже если шрифт не загрузился)
     window.draw(m_overlay);
 
@@ -108,12 +132,21 @@ void PauseState::initializeMenu() {
     ));
     m_overlay.setFillColor(sf::Color(0, 0, 0, 128)); // Полупрозрачный черный
 
-    // Настройка заголовка
+    // Вычисляем центр экрана
+    float centerX = windowSize.x / 2.0f;
+    float centerY = windowSize.y / 2.0f;
+
+    // Настройка заголовка (по центру экрана, сверху)
     m_title = std::make_unique<sf::Text>(*m_font);
     m_title->setString("PAUSED");
     m_title->setCharacterSize(TITLE_FONT_SIZE);
     m_title->setFillColor(TITLE_COLOR);
-    m_title->setPosition(sf::Vector2f(TITLE_X, TITLE_Y));
+
+    // Центрируем заголовок
+    auto titleBounds = m_title->getLocalBounds();
+    float titleX = centerX - titleBounds.size.x / 2.0f;
+    float titleY = windowSize.y * 0.2f; // 20% от высоты экрана
+    m_title->setPosition(sf::Vector2f(titleX, titleY));
 
     // Создание пунктов меню
     const std::vector<std::string> itemLabels = {
@@ -124,12 +157,19 @@ void PauseState::initializeMenu() {
     };
 
     m_menuItems.clear();
+    float menuStartY = centerY - (itemLabels.size() * MENU_ITEMS_SPACING / 2.0f); // Центрируем по вертикали
 
     for (size_t i = 0; i < itemLabels.size(); ++i) {
         auto item = std::make_unique<sf::Text>(*m_font);
         item->setString(itemLabels[i]);
         item->setCharacterSize(MENU_ITEM_FONT_SIZE);
-        item->setPosition(sf::Vector2f(MENU_ITEMS_X, MENU_ITEMS_START_Y + i * MENU_ITEMS_SPACING));
+
+        // Центрируем каждый пункт меню
+        auto itemBounds = item->getLocalBounds();
+        float itemX = centerX - itemBounds.size.x / 2.0f;
+        float itemY = menuStartY + i * MENU_ITEMS_SPACING;
+        item->setPosition(sf::Vector2f(itemX, itemY));
+
         m_menuItems.push_back(std::move(item));
     }
 

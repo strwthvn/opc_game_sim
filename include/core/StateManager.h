@@ -74,6 +74,12 @@ public:
     void handleEvent(const sf::Event& event);
 
     /**
+     * @brief Обрабатывает изменение размера окна
+     * @param newSize Новый размер окна
+     */
+    void handleWindowResize(const sf::Vector2u& newSize);
+
+    /**
      * @brief Обновляет активные состояния
      * @param dt Время с последнего обновления в секундах
      */
