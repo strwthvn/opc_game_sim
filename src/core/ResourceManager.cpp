@@ -102,6 +102,70 @@ bool ResourceManager::loadTextureFromImage(const std::string& name, const sf::Im
     return true;
 }
 
+size_t ResourceManager::preloadTextures(const std::vector<std::string>& paths,
+                                        std::function<void(float)> progressCallback) {
+    if (paths.empty()) {
+        return 0;
+    }
+
+    size_t loaded = 0;
+    size_t total = paths.size();
+
+    LOG_INFO("Preloading {} textures...", total);
+
+    for (size_t i = 0; i < total; ++i) {
+        const auto& path = paths[i];
+
+        // Пропускаем уже загруженные
+        if (hasTexture(path)) {
+            ++loaded;
+        } else if (loadTexture(path)) {
+            ++loaded;
+        }
+
+        // Уведомляем о прогрессе
+        if (progressCallback) {
+            float progress = static_cast<float>(i + 1) / static_cast<float>(total);
+            progressCallback(progress);
+        }
+    }
+
+    LOG_INFO("Preloaded {}/{} textures", loaded, total);
+    return loaded;
+}
+
+size_t ResourceManager::preloadFonts(const std::vector<std::pair<std::string, std::string>>& fontConfigs,
+                                     std::function<void(float)> progressCallback) {
+    if (fontConfigs.empty()) {
+        return 0;
+    }
+
+    size_t loaded = 0;
+    size_t total = fontConfigs.size();
+
+    LOG_INFO("Preloading {} fonts...", total);
+
+    for (size_t i = 0; i < total; ++i) {
+        const auto& [name, path] = fontConfigs[i];
+
+        // Пропускаем уже загруженные
+        if (hasFont(name)) {
+            ++loaded;
+        } else if (loadFont(name, path)) {
+            ++loaded;
+        }
+
+        // Уведомляем о прогрессе
+        if (progressCallback) {
+            float progress = static_cast<float>(i + 1) / static_cast<float>(total);
+            progressCallback(progress);
+        }
+    }
+
+    LOG_INFO("Preloaded {}/{} fonts", loaded, total);
+    return loaded;
+}
+
 bool ResourceManager::hasFont(const std::string& name) const {
     return m_fonts.find(name) != m_fonts.end();
 }

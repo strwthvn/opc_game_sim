@@ -1,6 +1,7 @@
 #include "core/systems/UpdateSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
+#include <cmath>
 
 namespace core {
 
@@ -33,11 +34,9 @@ void UpdateSystem::updateMovement(entt::registry& registry, double dt) {
         // Обновляем вращение
         transform.rotation += velocity.angularVelocity * static_cast<float>(dt);
 
-        // Нормализуем угол вращения (0-360)
-        while (transform.rotation >= 360.0f) {
-            transform.rotation -= 360.0f;
-        }
-        while (transform.rotation < 0.0f) {
+        // Нормализуем угол вращения (0-360) используя fmod для O(1) сложности
+        transform.rotation = std::fmod(transform.rotation, 360.0f);
+        if (transform.rotation < 0.0f) {
             transform.rotation += 360.0f;
         }
     }

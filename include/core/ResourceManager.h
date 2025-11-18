@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <vector>
+#include <functional>
 
 namespace core {
 
@@ -84,6 +86,30 @@ public:
      * @return true если успешно загружено
      */
     bool loadTextureFromImage(const std::string& name, const sf::Image& image);
+
+    /**
+     * @brief Предзагружает несколько текстур
+     *
+     * Полезно для экрана загрузки - загружает все текстуры заранее.
+     *
+     * @param paths Вектор путей к текстурам
+     * @param progressCallback Опциональный callback для отслеживания прогресса (0.0-1.0)
+     * @return Количество успешно загруженных текстур
+     */
+    size_t preloadTextures(const std::vector<std::string>& paths,
+                          std::function<void(float)> progressCallback = nullptr);
+
+    /**
+     * @brief Предзагружает несколько шрифтов
+     *
+     * Полезно для экрана загрузки - загружает все шрифты заранее.
+     *
+     * @param fontConfigs Вектор пар {имя, путь} для шрифтов
+     * @param progressCallback Опциональный callback для отслеживания прогресса (0.0-1.0)
+     * @return Количество успешно загруженных шрифтов
+     */
+    size_t preloadFonts(const std::vector<std::pair<std::string, std::string>>& fontConfigs,
+                       std::function<void(float)> progressCallback = nullptr);
 
     /**
      * @brief Проверяет, загружен ли шрифт
