@@ -174,6 +174,28 @@ bool ResourceManager::hasTexture(const std::string& name) const {
     return m_textures.find(name) != m_textures.end();
 }
 
+bool ResourceManager::unloadTexture(const std::string& name) {
+    auto it = m_textures.find(name);
+    if (it != m_textures.end()) {
+        m_textures.erase(it);
+        LOG_DEBUG("Texture unloaded: {}", name);
+        return true;
+    }
+    LOG_WARN("Cannot unload texture '{}': not found", name);
+    return false;
+}
+
+bool ResourceManager::unloadFont(const std::string& name) {
+    auto it = m_fonts.find(name);
+    if (it != m_fonts.end()) {
+        m_fonts.erase(it);
+        LOG_DEBUG("Font unloaded: {}", name);
+        return true;
+    }
+    LOG_WARN("Cannot unload font '{}': not found", name);
+    return false;
+}
+
 void ResourceManager::clear() {
     LOG_DEBUG("Clearing all resources: {} fonts, {} textures",
               m_fonts.size(), m_textures.size());

@@ -126,6 +126,20 @@ public:
     bool hasTexture(const std::string& name) const;
 
     /**
+     * @brief Выгружает отдельную текстуру
+     * @param name Имя текстуры
+     * @return true если текстура была выгружена, false если не найдена
+     */
+    bool unloadTexture(const std::string& name);
+
+    /**
+     * @brief Выгружает отдельный шрифт
+     * @param name Имя шрифта
+     * @return true если шрифт был выгружен, false если не найден
+     */
+    bool unloadFont(const std::string& name);
+
+    /**
      * @brief Очищает все загруженные ресурсы
      */
     void clear();
