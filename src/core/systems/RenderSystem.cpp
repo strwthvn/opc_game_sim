@@ -80,9 +80,17 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
                 // Устанавливаем цвет модуляции
                 sprite.setColor(spriteComp.color);
 
-                // Устанавливаем origin в центр спрайта для корректного вращения
+                // Устанавливаем origin спрайта
+                // Для вращения используем центр, иначе левый НИЖНИЙ угол
                 sf::FloatRect bounds = sprite.getLocalBounds();
-                sprite.setOrigin(bounds.size / 2.0f);
+                if (transform.rotation != 0.0f) {
+                    // Origin в центре для корректного вращения
+                    sprite.setOrigin(bounds.size / 2.0f);
+                } else {
+                    // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
+                    // (объекты "стоят" на своей Y-координате)
+                    sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
+                }
 
                 spriteComp.dirty = false;
             }

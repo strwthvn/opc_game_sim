@@ -7,11 +7,16 @@
 #include "core/systems/RenderSystem.h"
 #include "core/systems/UpdateSystem.h"
 #include "core/systems/LifetimeSystem.h"
+#include "core/systems/TilePositionSystem.h"
+#include "core/systems/AnimationSystem.h"
+#include "core/systems/OverlaySystem.h"
+#include "rendering/TileMapSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Window/Event.hpp>
+#include <algorithm>
 #include <sstream>
 #include <iomanip>
 
@@ -22,7 +27,9 @@ GameState::GameState(StateManager* stateManager)
     , m_font(nullptr)
     , m_fontLoaded(false)
     , m_elapsedTime(0.0)
-    , m_updateCount(0) {
+    , m_updateCount(0)
+    , m_cameraZoom(CAMERA_DEFAULT_ZOOM)
+    , m_debugDrawGrid(true) {  // Включаем отладочную сетку по умолчанию
 }
 
 GameState::~GameState() = default;
@@ -35,8 +42,9 @@ void GameState::onEnter() {
 
     // World View - расширяется с размером окна (показывает больше мира)
     m_worldView.setSize(sf::Vector2f(windowSize.x, windowSize.y));
-    m_worldView.setCenter(sf::Vector2f(windowSize.x / 2.0f, windowSize.y / 2.0f));
-    LOG_DEBUG("GameState World View initialized: {}x{}", windowSize.x, windowSize.y);
+    // Центрируем камеру на тайловой сетке (12x8 тайлов = 384x256 пикселей)
+    m_worldView.setCenter(sf::Vector2f(192.0f, 128.0f));  // Центр тайловой сетки
+    LOG_DEBUG("GameState World View initialized: {}x{}, centered at tile grid", windowSize.x, windowSize.y);
 
     // UI View - 1:1 с пикселями окна для четкого текста
     m_uiView.setSize(sf::Vector2f(windowSize.x, windowSize.y));
@@ -65,11 +73,33 @@ void GameState::onWindowResize(const sf::Vector2u& newSize) {
 }
 
 bool GameState::handleEvent(const sf::Event& event) {
-    // Оставляем handleEvent для специальных событий (например, закрытие окна)
-    // Клавиатурный ввод теперь обрабатывается через InputManager в update()
+    // Обработка нажатий клавиш (SFML 3 API)
+    if (const auto* keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+        // F6 - переключение отладочной сетки
+        if (keyPressed->code == sf::Keyboard::Key::F6) {
+            m_debugDrawGrid = !m_debugDrawGrid;
+            LOG_INFO("Debug grid: {}", m_debugDrawGrid ? "ON" : "OFF");
+            return true;
+        }
+    }
+
+    // Обработка зума колесом мыши (SFML 3 API)
+    if (const auto* wheelScrolled = event.getIf<sf::Event::MouseWheelScrolled>()) {
+        if (wheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
+            // Зум in/out
+            float delta = wheelScrolled->delta;
+            m_cameraZoom -= delta * CAMERA_ZOOM_SPEED;
+
+            // Ограничиваем зум
+            m_cameraZoom = std::clamp(m_cameraZoom, CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM);
+
+            LOG_DEBUG("Camera zoom: {:.2f}", m_cameraZoom);
+            return true;  // Событие обработано
+        }
+    }
 
     // Обработка кликов мыши, если нужно
-    // TODO: Обработка кликов мыши, перемещения камеры и т.д.
+    // TODO: Обработка кликов мыши для выделения объектов
 
     return false;  // Не блокируем события
 }
@@ -94,8 +124,38 @@ void GameState::update(double dt) {
             m_stateManager->changeState(std::make_unique<MenuState>(m_stateManager));
         }
 
-        // TODO: Обработка непрерывного ввода (например, перемещение камеры)
-        // if (input->isKeyPressed(sf::Keyboard::Key::W)) { camera.moveUp(dt); }
+        // Перемещение камеры (WASD)
+        sf::Vector2f cameraMove(0.0f, 0.0f);
+        float moveSpeed = CAMERA_MOVE_SPEED * static_cast<float>(dt);
+
+        // Учитываем зум при перемещении (больший зум = медленнее перемещение)
+        moveSpeed *= m_cameraZoom;
+
+        if (input->isKeyPressed(sf::Keyboard::Key::W) || input->isKeyPressed(sf::Keyboard::Key::Up)) {
+            cameraMove.y -= moveSpeed;
+        }
+        if (input->isKeyPressed(sf::Keyboard::Key::S) || input->isKeyPressed(sf::Keyboard::Key::Down)) {
+            cameraMove.y += moveSpeed;
+        }
+        if (input->isKeyPressed(sf::Keyboard::Key::A) || input->isKeyPressed(sf::Keyboard::Key::Left)) {
+            cameraMove.x -= moveSpeed;
+        }
+        if (input->isKeyPressed(sf::Keyboard::Key::D) || input->isKeyPressed(sf::Keyboard::Key::Right)) {
+            cameraMove.x += moveSpeed;
+        }
+
+        // Применяем перемещение камеры
+        if (cameraMove.x != 0.0f || cameraMove.y != 0.0f) {
+            m_worldView.move(cameraMove);
+        }
+
+        // Применяем зум (через zoom() изменяется размер view)
+        // Устанавливаем размер view в соответствии с зумом
+        auto windowSize = getWindowSize();
+        m_worldView.setSize(sf::Vector2f(
+            windowSize.x * m_cameraZoom,
+            windowSize.y * m_cameraZoom
+        ));
     }
 
     // Обновление ECS систем
@@ -108,6 +168,19 @@ void GameState::update(double dt) {
         m_lifetimeSystem->update(m_registry, dt);
     }
 
+    // Обновление Tile Systems (Milestone 1.3)
+    if (m_tilePositionSystem) {
+        m_tilePositionSystem->update(m_registry);
+    }
+
+    if (m_animationSystem) {
+        m_animationSystem->update(m_registry, dt);
+    }
+
+    if (m_overlaySystem) {
+        m_overlaySystem->update(m_registry);
+    }
+
     // TODO: Обновление физики
     // TODO: Обновление OPC UA привязок
 
@@ -118,7 +191,10 @@ void GameState::update(double dt) {
         oss << "Time: " << std::fixed << std::setprecision(1) << m_elapsedTime << "s\n";
         oss << "Updates: " << m_updateCount << "\n";
         oss << "Entities: " << m_registry.storage<entt::entity>().size() << "\n";
+        oss << "Camera Zoom: " << std::fixed << std::setprecision(2) << m_cameraZoom << "x\n";
         oss << "\nControls:\n";
+        oss << "WASD/Arrows - Move Camera\n";
+        oss << "Mouse Wheel - Zoom\n";
         oss << "ESC/P - Pause\n";
         oss << "Q - Back to Menu";
 
@@ -130,12 +206,20 @@ void GameState::render(sf::RenderWindow& window) {
     // Устанавливаем World View для рендеринга игровых объектов
     window.setView(m_worldView);
 
+    // Рендеринг тайловой карты (если загружена)
+    if (m_tileMapSystem && m_tileMapSystem->isLoaded()) {
+        m_tileMapSystem->render(window, m_worldView);
+    }
+
     // Рендеринг ECS entities (игровые объекты)
     if (m_renderSystem) {
         m_renderSystem->render(m_registry, window);
     }
 
-    // TODO: Рендеринг тайловой карты
+    // Отладочная визуализация тайловой сетки
+    if (m_debugDrawGrid) {
+        drawDebugGrid(window);
+    }
 
     // Переключаемся на UI View для рендеринга интерфейса
     window.setView(m_uiView);
@@ -180,6 +264,13 @@ void GameState::initializeScene() {
     m_updateSystem = std::make_unique<UpdateSystem>();
     m_lifetimeSystem = std::make_unique<LifetimeSystem>();
 
+    // Инициализация Tile Systems (Milestone 1.3)
+    LOG_INFO("Initializing Tile Systems (Milestone 1.3)");
+    m_tilePositionSystem = std::make_unique<TilePositionSystem>();
+    m_animationSystem = std::make_unique<AnimationSystem>();
+    m_overlaySystem = std::make_unique<OverlaySystem>();
+    m_tileMapSystem = std::make_unique<rendering::TileMapSystem>();
+
     // Создание программной тестовой текстуры (простой красный квадрат)
     LOG_INFO("Creating test texture");
     sf::Image testImage(sf::Vector2u(64, 64), sf::Color::Red);
@@ -201,6 +292,8 @@ void GameState::initializeScene() {
         LOG_ERROR("Failed to create test texture");
     }
 
+    // Старые тестовые объекты закомментированы - используем тайловую систему
+    /*
     // Создание тестовых сущностей для демонстрации ECS
     LOG_INFO("Creating test entities");
 
@@ -262,9 +355,259 @@ void GameState::initializeScene() {
 
         LOG_INFO("Created temporary entity (lifetime: 5.0s)");
     }
+    */
 
-    LOG_INFO("Created {} test entities", m_registry.storage<entt::entity>().size());
+    LOG_INFO("Old test entities disabled - using tile system");
     LOG_INFO("Game scene initialized with ECS");
+
+    // Создаем тестовую сцену с тайловыми объектами
+    createTileTestScene();
+}
+
+void GameState::createTileTestScene() {
+    LOG_INFO("Creating tile-based test scene (Milestone 1.3)");
+
+    auto* resources = getResourceManager();
+    if (!resources) {
+        LOG_ERROR("ResourceManager not available");
+        return;
+    }
+
+    // Создаем тестовые тайловые спрайты разных цветов
+    LOG_INFO("Creating tile textures (32x32)");
+
+    // Зеленый тайл (земля)
+    sf::Image greenTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(34, 139, 34));
+    resources->loadTextureFromImage("tile_green", greenTile);
+
+    // Синий тайл (вода)
+    sf::Image blueTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(30, 144, 255));
+    resources->loadTextureFromImage("tile_blue", blueTile);
+
+    // Коричневый тайл (объект)
+    sf::Image brownTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(139, 69, 19));
+    for (unsigned int i = 0; i < TILE_SIZE; ++i) {
+        brownTile.setPixel(sf::Vector2u(i, 0), sf::Color::White);
+        brownTile.setPixel(sf::Vector2u(i, TILE_SIZE - 1), sf::Color::White);
+        brownTile.setPixel(sf::Vector2u(0, i), sf::Color::White);
+        brownTile.setPixel(sf::Vector2u(TILE_SIZE - 1, i), sf::Color::White);
+    }
+    resources->loadTextureFromImage("tile_brown", brownTile);
+
+    // Желтый тайл 2x2 (большой объект)
+    sf::Image yellowBigTile(sf::Vector2u(TILE_SIZE * 2, TILE_SIZE * 2), sf::Color(255, 215, 0));
+    for (unsigned int i = 0; i < TILE_SIZE * 2; ++i) {
+        yellowBigTile.setPixel(sf::Vector2u(i, 0), sf::Color::Black);
+        yellowBigTile.setPixel(sf::Vector2u(i, TILE_SIZE * 2 - 1), sf::Color::Black);
+        yellowBigTile.setPixel(sf::Vector2u(0, i), sf::Color::Black);
+        yellowBigTile.setPixel(sf::Vector2u(TILE_SIZE * 2 - 1, i), sf::Color::Black);
+    }
+    resources->loadTextureFromImage("tile_yellow_2x2", yellowBigTile);
+
+    // Красный индикатор (для оверлея) - увеличен до 16x16 для видимости
+    sf::Image redIndicator(sf::Vector2u(16, 16), sf::Color::Red);
+    // Добавим желтую рамку для отладки
+    for (unsigned int i = 0; i < 16; ++i) {
+        redIndicator.setPixel(sf::Vector2u(i, 0), sf::Color::Yellow);
+        redIndicator.setPixel(sf::Vector2u(i, 15), sf::Color::Yellow);
+        redIndicator.setPixel(sf::Vector2u(0, i), sf::Color::Yellow);
+        redIndicator.setPixel(sf::Vector2u(15, i), sf::Color::Yellow);
+    }
+    resources->loadTextureFromImage("indicator_red", redIndicator);
+
+    // Спрайт-лист для анимации (4 кадра по 32x32 = 128x32)
+    sf::Image animSheet(sf::Vector2u(TILE_SIZE * 4, TILE_SIZE), sf::Color::Transparent);
+    for (int frame = 0; frame < 4; ++frame) {
+        int intensity = 64 + frame * 48;  // От темного к светлому
+        sf::Color color(intensity, 0, intensity);  // Пурпурный градиент
+
+        for (unsigned int y = 0; y < TILE_SIZE; ++y) {
+            for (unsigned int x = 0; x < TILE_SIZE; ++x) {
+                animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + x, y), color);
+            }
+        }
+
+        // Рамка для каждого кадра
+        for (unsigned int i = 0; i < TILE_SIZE; ++i) {
+            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + i, 0), sf::Color::White);
+            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + i, TILE_SIZE - 1), sf::Color::White);
+            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE, i), sf::Color::White);
+            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + TILE_SIZE - 1, i), sf::Color::White);
+        }
+    }
+    resources->loadTextureFromImage("anim_pulse", animSheet);
+
+    // === 1. Создаем "пол" из зеленых тайлов (слой Ground) ===
+    LOG_INFO("Creating ground layer");
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 12; ++x) {
+            auto entity = m_registry.create();
+
+            m_registry.emplace<NameComponent>(entity, "Ground_" + std::to_string(y) + "_" + std::to_string(x));
+            m_registry.emplace<TilePositionComponent>(entity, x, y, 1, 1);
+
+            auto& transform = m_registry.emplace<TransformComponent>(entity);
+            // Позиция будет автоматически установлена TilePositionSystem
+
+            auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+            sprite.textureName = "tile_green";
+            sprite.layer = RenderLayer::Ground;
+            sprite.visible = true;
+        }
+    }
+
+    // Добавляем немного "воды" на пол
+    for (int x = 2; x < 6; ++x) {
+        for (int y = 3; y < 5; ++y) {
+            auto view = m_registry.view<TilePositionComponent, SpriteComponent>();
+            for (auto entity : view) {
+                auto& tilePos = view.get<TilePositionComponent>(entity);
+                if (tilePos.tileX == x && tilePos.tileY == y) {
+                    auto& sprite = view.get<SpriteComponent>(entity);
+                    sprite.textureName = "tile_blue";
+                }
+            }
+        }
+    }
+
+    // === 2. Создаем промышленные объекты (слой Objects) ===
+    LOG_INFO("Creating industrial objects");
+
+    // Ряд простых объектов на разных Y для демонстрации Y-sorting
+    for (int i = 0; i < 5; ++i) {
+        auto entity = m_registry.create();
+
+        m_registry.emplace<NameComponent>(entity, "Object_" + std::to_string(i));
+        m_registry.emplace<TilePositionComponent>(entity, 1 + i * 2, 1 + i, 1, 1);
+        m_registry.emplace<TransformComponent>(entity);  // ИСПРАВЛЕНО: добавлен TransformComponent
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+        sprite.textureName = "tile_brown";
+        sprite.layer = RenderLayer::Objects;  // Y-sorting будет применен TilePositionSystem
+        sprite.visible = true;
+
+        LOG_DEBUG("Created object {} at tile ({}, {})", i, 1 + i * 2, 1 + i);
+    }
+
+    // === 3. Многотайловый объект 2x2 ===
+    {
+        auto entity = m_registry.create();
+
+        m_registry.emplace<NameComponent>(entity, "BigObject_2x2");
+        m_registry.emplace<TilePositionComponent>(entity, 8, 2, 2, 2);
+        m_registry.emplace<TransformComponent>(entity);  // ИСПРАВЛЕНО: добавлен TransformComponent
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+        sprite.textureName = "tile_yellow_2x2";
+        sprite.layer = RenderLayer::Objects;
+        sprite.visible = true;
+
+        LOG_INFO("Created 2x2 tile object at (8, 2)");
+    }
+
+    // === 4. Анимированный объект ===
+    {
+        auto entity = m_registry.create();
+
+        m_registry.emplace<NameComponent>(entity, "AnimatedObject");
+        m_registry.emplace<TilePositionComponent>(entity, 5, 6, 1, 1);
+        m_registry.emplace<TransformComponent>(entity);  // ИСПРАВЛЕНО: добавлен TransformComponent
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+        sprite.textureName = "anim_pulse";
+        sprite.layer = RenderLayer::Objects;
+        sprite.visible = true;
+
+        // Добавляем анимацию
+        auto& anim = m_registry.emplace<AnimationComponent>(entity);
+        anim.currentAnimation = "pulse";
+        anim.frameCount = 4;
+        anim.frameWidth = TILE_SIZE;
+        anim.frameHeight = TILE_SIZE;
+        anim.frameDelay = 0.3f;  // 3 FPS
+        anim.loop = true;
+        anim.playing = true;
+
+        LOG_INFO("Created animated object at (5, 6)");
+    }
+
+    // === 5. Объект с оверлеем (индикатором) ===
+    {
+        // Родительский объект
+        auto parent = m_registry.create();
+
+        m_registry.emplace<NameComponent>(parent, "ObjectWithOverlay");
+        m_registry.emplace<TilePositionComponent>(parent, 3, 6, 1, 1);
+        m_registry.emplace<TransformComponent>(parent);  // ИСПРАВЛЕНО: добавлен TransformComponent
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(parent);
+        sprite.textureName = "tile_brown";
+        sprite.layer = RenderLayer::Objects;
+        sprite.visible = true;
+
+        // Создаем дочернюю сущность (оверлей)
+        auto overlay = m_registry.create();
+
+        m_registry.emplace<NameComponent>(overlay, "RedIndicator");
+        m_registry.emplace<ParentComponent>(overlay, parent);
+
+        // Оверлей также должен иметь Transform для рендеринга
+        m_registry.emplace<TransformComponent>(overlay);
+
+        auto& overlaySprite = m_registry.emplace<SpriteComponent>(overlay);
+        overlaySprite.textureName = "indicator_red";
+        overlaySprite.layer = RenderLayer::Overlays;
+        overlaySprite.visible = true;
+
+        // Компонент оверлея (смещение 20 пикселей вправо, 4 вниз от родителя)
+        m_registry.emplace<OverlayComponent>(overlay, 20.0f, 4.0f, true);
+
+        // Регистрируем дочернюю сущность у родителя
+        auto& children = m_registry.get_or_emplace<ChildrenComponent>(parent);
+        children.addChild(overlay);
+
+        LOG_INFO("Created object with overlay at (3, 6)");
+    }
+
+    LOG_INFO("Tile test scene created with {} entities", m_registry.storage<entt::entity>().size());
+}
+
+void GameState::drawDebugGrid(sf::RenderWindow& window) {
+    // Получаем границы видимой области в world coordinates
+    sf::Vector2f viewCenter = m_worldView.getCenter();
+    sf::Vector2f viewSize = m_worldView.getSize();
+
+    float left = viewCenter.x - viewSize.x / 2.0f;
+    float right = viewCenter.x + viewSize.x / 2.0f;
+    float top = viewCenter.y - viewSize.y / 2.0f;
+    float bottom = viewCenter.y + viewSize.y / 2.0f;
+
+    // Выравниваем границы по сетке тайлов
+    int startX = static_cast<int>(left / TILE_SIZE) - 1;
+    int endX = static_cast<int>(right / TILE_SIZE) + 1;
+    int startY = static_cast<int>(top / TILE_SIZE) - 1;
+    int endY = static_cast<int>(bottom / TILE_SIZE) + 1;
+
+    // Создаем массив вертексов для линий (2 точки на линию)
+    std::vector<sf::Vertex> lines;
+    sf::Color gridColor(0, 0, 0, 128);  // Черный полупрозрачный
+
+    // Вертикальные линии
+    for (int x = startX; x <= endX; ++x) {
+        float xPos = x * TILE_SIZE;
+        lines.emplace_back(sf::Vector2f(xPos, top), gridColor);
+        lines.emplace_back(sf::Vector2f(xPos, bottom), gridColor);
+    }
+
+    // Горизонтальные линии
+    for (int y = startY; y <= endY; ++y) {
+        float yPos = y * TILE_SIZE;
+        lines.emplace_back(sf::Vector2f(left, yPos), gridColor);
+        lines.emplace_back(sf::Vector2f(right, yPos), gridColor);
+    }
+
+    // Рисуем все линии одним вызовом
+    window.draw(lines.data(), lines.size(), sf::PrimitiveType::Lines);
 }
 
 } // namespace core

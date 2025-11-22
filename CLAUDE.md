@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OPC Game Simulator is a 2D industrial automation simulator for PLC programming education with OPC UA integration. Built with C++20/23 using ECS architecture (EnTT), combining game sandbox mechanics with realistic industrial process simulation.
 
-**Current Status:** Phase 0 (Infrastructure Setup) - preparing for Phase 1 (Basic Engine & Rendering)
+**Current Status:** Phase 1 (Basic Engine & Rendering) - Milestone 1.3 (Tile System) completed
 
 ## Build System & Dependencies
 
@@ -65,6 +65,51 @@ find src include -name '*.cpp' -o -name '*.h' -o -name '*.hpp' | xargs clang-for
 find src include -name '*.cpp' -o -name '*.h' -o -name '*.hpp' | xargs clang-format --dry-run --Werror
 ```
 
+### Critical SFML 3 API Changes
+
+**⚠️ IMPORTANT:** This project uses SFML 3, which has breaking API changes from SFML 2. Always use the following patterns:
+
+#### Event Handling (SFML 3 uses std::variant)
+```cpp
+// ❌ WRONG (SFML 2 style)
+if (event.type == sf::Event::KeyPressed) {
+    if (event.key.code == sf::Keyboard::Escape) { }
+}
+
+// ✅ CORRECT (SFML 3 style)
+if (const auto* keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+    if (keyPressed->code == sf::Keyboard::Key::Escape) { }
+}
+
+// Mouse wheel scrolling
+if (const auto* wheelScrolled = event.getIf<sf::Event::MouseWheelScrolled>()) {
+    float delta = wheelScrolled->delta;
+}
+```
+
+#### Vector and Geometric Types
+```cpp
+// ❌ WRONG (SFML 2 style)
+sprite.setOrigin(0.0f, 0.0f);
+
+// ✅ CORRECT (SFML 3 style)
+sprite.setOrigin(sf::Vector2f(0.0f, 0.0f));
+```
+
+#### Primitive Types for Drawing
+```cpp
+// ❌ WRONG (SFML 2 style)
+window.draw(vertices.data(), vertices.size(), sf::Lines);
+
+// ✅ CORRECT (SFML 3 style)
+window.draw(vertices.data(), vertices.size(), sf::PrimitiveType::Lines);
+```
+
+### Dependency Notes
+
+- **tmxlite requires zstd**: When using TileMapSystem, ensure `find_package(zstd REQUIRED)` is in CMakeLists.txt and `zstd::libzstd_static` is linked to the Rendering module
+- **open62541 disabled on MinGW**: OPC UA temporarily disabled for Windows/MinGW builds due to compatibility issues
+
 ## Architecture
 
 ### Modular Structure
@@ -117,14 +162,22 @@ The project uses a **7-module architecture**, each built as a static library:
 ### ECS Pattern (EnTT)
 
 **Components are pure data** (no logic):
-- `TransformComponent` - position, rotation, scale
-- `SpriteComponent` - visual representation
+- `TransformComponent` - position, rotation, scale (pixel coordinates)
+- `SpriteComponent` - visual representation with layer-based rendering and sprite caching
+- `TilePositionComponent` - tile-based positioning (converts to pixel coordinates)
+- `AnimationComponent` - frame-based sprite animation
+- `OverlayComponent` - parent-relative positioning for UI overlays
+- `ParentComponent` / `ChildrenComponent` - parent-child hierarchy
 - `SensorComponent` - industrial sensors (presence, level, temperature)
 - `ActuatorComponent` - motors, valves, indicators
 - `PLCBindingComponent` - OPC UA variable bindings
 - `RigidBodyComponent` - Box2D physics body reference
 
 **Systems contain logic** (no data):
+- `RenderSystem` - renders sprites with layer sorting and Y-sorting
+- `TilePositionSystem` - syncs tile coordinates to pixel coordinates and manages Y-sorting
+- `AnimationSystem` - updates sprite animation frames
+- `OverlaySystem` - syncs overlay positions with parent entities
 - Iterate over entities with `registry.view<ComponentA, ComponentB>()`
 - Update components based on game state
 - Systems run in main loop or dedicated threads
@@ -152,6 +205,51 @@ Simulation/Rendering systems
 Input → Update Systems → Physics Step → OPC UA Sync →
 Render (SFML) → UI (ImGui) → Present
 ```
+
+### Coordinate System and Rendering
+
+**Tile-Based Coordinate System:**
+- **Tile size**: 32x32 pixels (constant `TILE_SIZE`)
+- **Origin**: Bottom-left corner of sprites (NOT top-left as in traditional 2D)
+- **TilePositionComponent**: Stores position in tile coordinates (e.g., (3, 6))
+- **TransformComponent**: Stores position in pixel coordinates (e.g., (96, 224))
+
+**Sprite Origin and Positioning:**
+- RenderSystem sets sprite origin to **bottom-left corner** for non-rotating sprites
+- This means `TransformComponent(x, y)` specifies where the bottom-left corner of the sprite is placed
+- For rotating sprites, origin is set to center for correct rotation
+- **Rationale**: Bottom-left origin is more intuitive for 2D games where objects "stand" on the ground
+
+**Example:**
+```cpp
+// Object at tile (3, 6) with size 1x1 (32x32 pixels)
+TilePositionComponent tilePos{3, 6, 1, 1};
+// getPixelPosition() returns (3*32, (6+1)*32) = (96, 224)
+// Sprite with origin at bottom-left will be drawn:
+//   - Bottom-left at (96, 224)
+//   - Top-left at (96, 192)
+//   - Occupies tile (3, 6) visually
+```
+
+**Rendering Layers:**
+- `Ground = 100` - Ground tiles and background
+- `Objects = 200` - Game objects with Y-sorting (layer = 200 + tileY)
+- `Overlays = 300` - UI overlays attached to objects (layer = 300 + tileY)
+- `UIOverlay = 400` - Top-level UI elements
+
+**Y-Sorting:** Objects with higher Y coordinates (further down) render later, creating depth perception for 3/4 perspective views.
+
+### Debug Tools
+
+**Tile Grid Visualization:**
+- Press **F6** to toggle tile grid overlay (black semi-transparent lines)
+- Grid automatically adjusts to camera zoom and position
+- Enabled by default to help with object positioning
+
+**Camera Controls:**
+- **WASD / Arrow keys** - Move camera (600 pixels/sec)
+- **Mouse wheel** - Zoom (0.2x to 1.0x, default 0.5x)
+- **F6** - Toggle debug grid
 
 ## Adding New Code
 
@@ -232,22 +330,29 @@ Projects stored with tables: `projects`, `scenes`, `bindings`
 
 ## Development Phases
 
-**Current: Phase 0** - Infrastructure complete
-**Next: Phase 1** - Basic engine (SFML window, game loop, ECS, tilemap rendering)
+**Current: Phase 1** - Basic Engine & Rendering
+- ✅ Milestone 1.1: Application Framework (SFML window, game loop, state management)
+- ✅ Milestone 1.2: ECS Integration (EnTT, basic components and systems)
+- ✅ Milestone 1.3: Tile System (tile-based positioning, layers, Y-sorting, overlays, animation)
+- 🔄 Milestone 1.4: TMX Map Loading (in progress)
+
+**Next: Phase 2** - Physics Integration (Box2D)
 
 See ROADMAP.md for full 10-phase plan (12-15 month timeline).
 
 ## Key Dependencies
 
-- **SFML 3** - Graphics, window, audio
+- **SFML 3** - Graphics, window, audio (⚠️ API breaking changes from SFML 2)
 - **EnTT** - ECS framework
 - **Box2D** - 2D physics
-- **open62541** - OPC UA client/server
+- **open62541** - OPC UA client/server (disabled on MinGW)
 - **Lua + sol2** - Scripting
 - **Dear ImGui + ImPlot** - UI and plotting
-- **tmxlite** - TMX map loader
+- **tmxlite** - TMX map loader (requires zstd)
+- **zstd** - Compression library for tmxlite
 - **SQLite3** - Project storage
 - **spdlog** - Logging
+- **fmt** - Formatting library
 - **Catch2** - Testing framework
 
 All dependencies managed via vcpkg manifest mode.

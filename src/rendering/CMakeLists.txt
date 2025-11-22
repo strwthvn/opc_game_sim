@@ -3,10 +3,9 @@ add_library(Rendering STATIC)
 
 target_sources(Rendering
     PRIVATE
-        # Здесь будут добавлены исходные файлы
+        TileMapSystem.cpp
         # RenderSystem.cpp
         # Camera.cpp
-        # TileMapRenderer.cpp
         # SpriteRenderer.cpp
 )
 
@@ -20,9 +19,11 @@ target_include_directories(Rendering
 target_link_libraries(Rendering
     PUBLIC
         Core
-        sfml::graphics
-        tmxlite::tmxlite
+        SFML::Graphics
+        PkgConfig::TMXLITE
         EnTT::EnTT
+        spdlog::spdlog
+        zstd::libzstd_static
     PRIVATE
 )
 

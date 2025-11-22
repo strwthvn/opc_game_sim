@@ -39,6 +39,7 @@ find_package(SFML 3 REQUIRED COMPONENTS Graphics Window System Audio)
 find_package(EnTT REQUIRED)
 find_package(box2d REQUIRED)
 pkg_check_modules(TMXLITE REQUIRED IMPORTED_TARGET tmxlite)
+find_package(zstd REQUIRED)
 # Temporarily disabled for Windows/MinGW build (open62541 has MinGW compatibility issues)
 # find_package(open62541 REQUIRED)
 find_package(Lua REQUIRED)
@@ -72,7 +73,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Модули проекта (будут добавлены по мере реализации)
 add_subdirectory(src/core)
 # add_subdirectory(src/simulation)
-# add_subdirectory(src/rendering)
+add_subdirectory(src/rendering)
 # add_subdirectory(src/industrial)
 # add_subdirectory(src/scripting)
 # add_subdirectory(src/editor)
@@ -86,8 +87,8 @@ add_executable(${PROJECT_NAME}
 # Линковка всех модулей (будут добавлены по мере реализации)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Core
+    Rendering
 #     Simulation
-#     Rendering
 #     Industrial
 #     Scripting
 #     Editor

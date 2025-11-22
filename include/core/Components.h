@@ -12,6 +12,26 @@
 
 namespace core {
 
+// ============== КОНСТАНТЫ ТАЙЛОВОЙ СИСТЕМЫ ==============
+
+/**
+ * @brief Размер одного тайла в пикселях (фиксировано)
+ */
+constexpr int TILE_SIZE = 32;
+
+/**
+ * @brief Константы слоёв отрисовки для корректного z-ordering
+ */
+namespace RenderLayer {
+    constexpr int Background = 0;    ///< Фон (под картой)
+    constexpr int Ground = 100;      ///< Базовая карта (пол, земля)
+    constexpr int Objects = 200;     ///< Промышленные объекты (+ tileY для Y-sorting)
+    constexpr int Overlays = 300;    ///< Индикаторы, кнопки состояния (+ tileY для синхронизации)
+    constexpr int UIOverlay = 400;   ///< HUD, курсор, UI элементы в игровом мире
+}
+
+// ============== БАЗОВЫЕ КОМПОНЕНТЫ ==============
+
 /**
  * @brief Компонент трансформации
  *
@@ -146,15 +166,32 @@ struct LifetimeComponent {
 /**
  * @brief Компонент анимации спрайта
  *
- * Управляет покадровой анимацией через смену textureRect
+ * Управляет покадровой анимацией через смену textureRect.
+ * Поддерживает спрайт-листы (горизонтальные полосы кадров).
  */
 struct AnimationComponent {
     std::string currentAnimation;     ///< Имя текущей анимации
     int currentFrame = 0;             ///< Текущий кадр
-    float frameTime = 0.0f;           ///< Время до следующего кадра (секунды)
+    float frameTime = 0.0f;           ///< Накопитель времени до следующего кадра (секунды)
     float frameDelay = 0.1f;          ///< Задержка между кадрами (секунды)
     bool loop = true;                 ///< Зациклить анимацию
     bool playing = true;              ///< Воспроизводится ли анимация
+
+    // === НОВЫЕ ПОЛЯ ДЛЯ ТАЙЛОВОЙ СИСТЕМЫ ===
+    int frameCount = 1;               ///< Общее количество кадров в анимации
+    int frameWidth = TILE_SIZE;       ///< Ширина одного кадра в пикселях
+    int frameHeight = TILE_SIZE;      ///< Высота одного кадра в пикселях
+
+    /**
+     * @brief Получить прямоугольник текущего кадра для textureRect
+     * @return Прямоугольник текущего кадра (для горизонтального спрайт-листа)
+     */
+    sf::IntRect getCurrentFrameRect() const {
+        return sf::IntRect(
+            sf::Vector2i(currentFrame * frameWidth, 0),
+            sf::Vector2i(frameWidth, frameHeight)
+        );
+    }
 
     // Данные анимации будут храниться в отдельном AnimationSystem/AnimationManager
 };
@@ -195,6 +232,75 @@ struct ChildrenComponent {
     size_t childCount() const {
         return children.size();
     }
+};
+
+// ============== КОМПОНЕНТЫ ТАЙЛОВОЙ СИСТЕМЫ ==============
+
+/**
+ * @brief Позиция объекта в тайловых координатах
+ *
+ * Дополняет TransformComponent, который хранит пиксельные координаты.
+ * Синхронизация между тайловыми и пиксельными координатами
+ * выполняется в TilePositionSystem.
+ */
+struct TilePositionComponent {
+    int tileX = 0;           ///< X координата в тайлах
+    int tileY = 0;           ///< Y координата в тайлах
+    int widthTiles = 1;      ///< Ширина объекта в тайлах
+    int heightTiles = 1;     ///< Высота объекта в тайлах
+
+    /**
+     * @brief Получить пиксельную позицию (левый НИЖНИЙ угол)
+     * @return Позиция в пикселях (левый нижний угол объекта)
+     */
+    sf::Vector2f getPixelPosition() const {
+        return {
+            static_cast<float>(tileX * TILE_SIZE),
+            static_cast<float>((tileY + heightTiles) * TILE_SIZE)
+        };
+    }
+
+    /**
+     * @brief Получить центр объекта в пикселях
+     * @return Центральная позиция в пикселях
+     */
+    sf::Vector2f getCenterPixel() const {
+        return {
+            (tileX + widthTiles * 0.5f) * TILE_SIZE,
+            (tileY + heightTiles * 0.5f) * TILE_SIZE
+        };
+    }
+
+    /**
+     * @brief Проверить, содержит ли объект указанный тайл
+     * @param x Тайловая координата X
+     * @param y Тайловая координата Y
+     * @return true если тайл входит в область объекта
+     */
+    bool containsTile(int x, int y) const {
+        return x >= tileX && x < tileX + widthTiles &&
+               y >= tileY && y < tileY + heightTiles;
+    }
+};
+
+/**
+ * @brief Оверлей состояния объекта (кнопка, индикатор)
+ *
+ * Создается как отдельная entity с ParentComponent,
+ * которая ссылается на родительский объект.
+ * OverlaySystem автоматически синхронизирует позицию с родителем.
+ */
+struct OverlayComponent {
+    sf::Vector2f localOffset;  ///< Смещение относительно позиции родителя
+    bool syncWithParent = true; ///< Автоматическая синхронизация позиции с родителем
+
+    OverlayComponent() : localOffset(0.0f, 0.0f), syncWithParent(true) {}
+
+    explicit OverlayComponent(float offsetX, float offsetY, bool sync = true)
+        : localOffset(offsetX, offsetY), syncWithParent(sync) {}
+
+    explicit OverlayComponent(sf::Vector2f offset, bool sync = true)
+        : localOffset(offset), syncWithParent(sync) {}
 };
 
 } // namespace core

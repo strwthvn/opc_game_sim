@@ -13,6 +13,16 @@ namespace core {
 class RenderSystem;
 class UpdateSystem;
 class LifetimeSystem;
+class TilePositionSystem;
+class AnimationSystem;
+class OverlaySystem;
+}
+
+namespace rendering {
+class TileMapSystem;
+}
+
+namespace core {
 
 /**
  * @brief Состояние игрового процесса
@@ -54,6 +64,12 @@ private:
      */
     void initializeScene();
 
+    /**
+     * @brief Создает тестовую сцену с тайловыми объектами
+     * Демонстрирует работу тайловой системы (Milestone 1.3)
+     */
+    void createTileTestScene();
+
     const sf::Font* m_font;                    ///< Указатель на шрифт из ResourceManager
     std::unique_ptr<sf::Text> m_infoText;      ///< Информационный текст
     bool m_fontLoaded;                         ///< Флаг загрузки шрифта
@@ -68,9 +84,27 @@ private:
     std::unique_ptr<UpdateSystem> m_updateSystem;  ///< Система обновления
     std::unique_ptr<LifetimeSystem> m_lifetimeSystem;  ///< Система времени жизни
 
+    // Tile System (Milestone 1.3)
+    std::unique_ptr<TilePositionSystem> m_tilePositionSystem;  ///< Система синхронизации тайловых позиций
+    std::unique_ptr<AnimationSystem> m_animationSystem;        ///< Система анимации спрайтов
+    std::unique_ptr<OverlaySystem> m_overlaySystem;            ///< Система синхронизации оверлеев
+    std::unique_ptr<rendering::TileMapSystem> m_tileMapSystem; ///< Система рендеринга тайловых карт (TMX)
+
     // Views для рендеринга
     sf::View m_worldView;                      ///< View для игрового мира (расширяется с окном)
     sf::View m_uiView;                         ///< View для UI (фиксированный)
+
+    // Управление камерой
+    float m_cameraZoom;                        ///< Текущий зум камеры
+    static constexpr float CAMERA_MOVE_SPEED = 600.0f;     ///< Скорость перемещения камеры (пикселей/сек)
+    static constexpr float CAMERA_ZOOM_SPEED = 0.1f;       ///< Шаг изменения зума
+    static constexpr float CAMERA_MIN_ZOOM = 0.2f;         ///< Минимальный зум
+    static constexpr float CAMERA_MAX_ZOOM = 1.0f;         ///< Максимальный зум
+    static constexpr float CAMERA_DEFAULT_ZOOM = 0.5f;     ///< Стандартный зум
+
+    // Отладочная визуализация
+    bool m_debugDrawGrid;                      ///< Флаг отрисовки тайловой сетки
+    void drawDebugGrid(sf::RenderWindow& window);  ///< Отрисовка отладочной сетки
 
     // Размеры и позиции UI (в координатах фиксированного UI View)
     static constexpr unsigned int UI_WIDTH = 1280;
