@@ -65,12 +65,10 @@ void AnimationSystem::updateTextureRects(entt::registry& registry) {
         sf::IntRect frameRect = anim.getCurrentFrameRect();
 
         // Обновляем textureRect только если он изменился
+        // Не нужно markDirty - RenderSystem применяет textureRect напрямую
         if (sprite.textureRect.position != frameRect.position ||
             sprite.textureRect.size != frameRect.size) {
             sprite.textureRect = frameRect;
-
-            // Помечаем кеш спрайта как требующий обновления
-            sprite.markDirty();
         }
     }
 }

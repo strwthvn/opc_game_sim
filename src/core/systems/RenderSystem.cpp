@@ -33,6 +33,10 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
     std::vector<RenderData> renderQueue;
     renderQueue.reserve(view.size_hint());
 
+    // Получаем bounds камеры для frustum culling
+    sf::FloatRect viewBounds = sf::FloatRect(window.getView().getCenter() - window.getView().getSize() / 2.0f,
+                                              window.getView().getSize());
+
     // Собираем все видимые спрайты
     for (auto entity : view) {
         const auto& transform = view.get<TransformComponent>(entity);
@@ -43,14 +47,32 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             continue;
         }
 
+        // Пропускаем спрайты без текстуры для проверки bounds
+        if (sprite.textureName.empty()) {
+            continue;
+        }
+
+        // Frustum culling: пропускаем объекты вне камеры
+        // Приблизительная проверка по позиции (можно улучшить с учетом размера спрайта)
+        const float SPRITE_MARGIN = 64.0f; // Запас для больших спрайтов
+        sf::FloatRect spriteBounds(sf::Vector2f(transform.x - SPRITE_MARGIN, transform.y - SPRITE_MARGIN),
+                                   sf::Vector2f(SPRITE_MARGIN * 2, SPRITE_MARGIN * 2));
+
+        if (!viewBounds.findIntersection(spriteBounds).has_value()) {
+            continue;
+        }
+
         renderQueue.push_back({entity, &transform, &sprite, sprite.layer});
     }
 
-    // Сортируем по слоям (меньше = раньше)
-    std::sort(renderQueue.begin(), renderQueue.end(),
-              [](const RenderData& a, const RenderData& b) {
-                  return a.layer < b.layer;
-              });
+    // Сортируем по слоям только если изменились (оптимизация Problem 4)
+    if (m_layersDirty) {
+        std::stable_sort(renderQueue.begin(), renderQueue.end(),
+                         [](const RenderData& a, const RenderData& b) {
+                             return a.layer < b.layer;
+                         });
+        m_layersDirty = false;
+    }
 
     // Отрисовываем все спрайты
     for (const auto& data : renderQueue) {
@@ -96,6 +118,11 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             }
 
             sf::Sprite& sprite = *spriteComp.cachedSprite;
+
+            // Применяем textureRect каждый кадр для поддержки анимации
+            if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
+                sprite.setTextureRect(spriteComp.textureRect);
+            }
 
             // Применяем трансформацию каждый кадр (SFML 3 uses Vector2f and sf::Angle)
             sprite.setPosition(sf::Vector2f(transform.x, transform.y));

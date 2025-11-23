@@ -31,6 +31,7 @@ public:
 
 private:
     ResourceManager* m_resourceManager;  ///< Менеджер ресурсов для текстур
+    bool m_layersDirty = true;           ///< Флаг необходимости пересортировки слоев
 };
 
 } // namespace core
