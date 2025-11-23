@@ -250,7 +250,7 @@ public:
 
 ## 🔧 Расширяемость и API
 
-### 10. Отсутствие интерфейсов систем
+### 10. Отсутствие интерфейсов систем ✅ ИСПРАВЛЕНО
 
 **Проблема:**
 Все системы имеют разные сигнатуры:
@@ -265,14 +265,34 @@ public:
 class ISystem {
 public:
     virtual ~ISystem() = default;
-    virtual void update(entt::registry& reg, float dt) = 0;
+    virtual void update(entt::registry& reg, double dt) = 0;
     virtual int getPriority() const { return 0; }  // Порядок выполнения
+    virtual const char* getName() const = 0;
+    virtual bool isActive() const { return true; }
+    virtual void setActive(bool active) {}
 };
 
-class RenderSystem : public ISystem {
-    void update(entt::registry& reg, float dt) override;
+class AnimationSystem : public ISystem {
+    void update(entt::registry& reg, double dt) override;
+    int getPriority() const override { return 300; }
+    const char* getName() const override { return "AnimationSystem"; }
 };
 ```
+
+**Статус:** ✅ Исправлено
+- Создан базовый интерфейс `ISystem` (include/core/systems/ISystem.h)
+- Все системы обновления наследуются от `ISystem`:
+  - `UpdateSystem` (приоритет 0)
+  - `LifetimeSystem` (приоритет 50)
+  - `TilePositionSystem` (приоритет 200)
+  - `AnimationSystem` (приоритет 300)
+  - `OverlaySystem` (приоритет 400)
+  - `RenderSystem` (приоритет 500, с дополнительным методом `render()` и `setRenderTarget()`)
+- Интерфейс поддерживает:
+  - Унифицированный метод `update(registry, dt)`
+  - Приоритеты для управления порядком выполнения
+  - Имена систем для отладки
+  - Возможность активации/деактивации систем
 
 ### 11. Глобальные константы в namespace
 

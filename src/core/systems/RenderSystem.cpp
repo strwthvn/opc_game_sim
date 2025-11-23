@@ -10,12 +10,24 @@
 namespace core {
 
 RenderSystem::RenderSystem(ResourceManager* resourceManager)
-    : m_resourceManager(resourceManager) {
+    : m_resourceManager(resourceManager), m_renderTarget(nullptr) {
     if (!m_resourceManager) {
         LOG_ERROR("RenderSystem created with null ResourceManager");
         throw std::runtime_error("RenderSystem requires valid ResourceManager");
     }
     LOG_DEBUG("RenderSystem initialized");
+}
+
+void RenderSystem::update(entt::registry& registry, double dt) {
+    if (!m_renderTarget) {
+        LOG_ERROR("RenderSystem::update() called without render target. Call setRenderTarget() first.");
+        return;
+    }
+    render(registry, *m_renderTarget);
+}
+
+void RenderSystem::setRenderTarget(sf::RenderWindow* window) {
+    m_renderTarget = window;
 }
 
 void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
