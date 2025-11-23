@@ -1,6 +1,7 @@
 #include "core/systems/TilePositionSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
+#include <algorithm>  // для std::clamp
 
 namespace core {
 
@@ -45,14 +46,18 @@ void TilePositionSystem::updateLayers(entt::registry& registry) {
         // Объекты с большим Y рисуются позже (находятся "ближе" к камере)
         if (sprite.layer >= RenderLayer::Objects && sprite.layer < RenderLayer::Overlays) {
             // Базовый слой Objects (200) + позиция по Y для Y-sorting
-            sprite.layer = RenderLayer::Objects + tilePos.tileY;
+            // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой Overlays (300)
+            int yOffset = std::clamp(tilePos.tileY, 0, 99);
+            sprite.layer = RenderLayer::Objects + yOffset;
 
             // Помечаем кеш спрайта как требующий обновления
             sprite.markDirty();
         }
         // Для Overlays синхронизируем с тем же Y, что у родителя
         else if (sprite.layer >= RenderLayer::Overlays && sprite.layer < RenderLayer::UIOverlay) {
-            sprite.layer = RenderLayer::Overlays + tilePos.tileY;
+            // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой UIOverlay (400)
+            int yOffset = std::clamp(tilePos.tileY, 0, 99);
+            sprite.layer = RenderLayer::Overlays + yOffset;
             sprite.markDirty();
         }
     }

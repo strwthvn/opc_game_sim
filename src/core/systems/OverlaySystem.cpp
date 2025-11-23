@@ -44,16 +44,6 @@ void OverlaySystem::syncOverlayPositions(entt::registry& registry) {
         transform.x = parentTransform->x + overlay.localOffset.x;
         transform.y = parentTransform->y + overlay.localOffset.y;
 
-        // Отладочное логирование (только для первых 5 обновлений)
-        static int logCount = 0;
-        if (logCount < 5) {
-            LOG_DEBUG("Overlay sync: parent=({}, {}), offset=({}, {}), result=({}, {})",
-                     parentTransform->x, parentTransform->y,
-                     overlay.localOffset.x, overlay.localOffset.y,
-                     transform.x, transform.y);
-            logCount++;
-        }
-
         // Наследуем вращение родителя (опционально)
         // transform.rotation = parentTransform->rotation;
 

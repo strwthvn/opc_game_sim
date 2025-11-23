@@ -173,17 +173,94 @@ void TileMapSystem::render(sf::RenderTarget& target, const sf::View& camera) {
             continue;
         }
 
-        // Рендерим видимые тайлы слоя
+        // Группируем тайлы по тайлсетам для батчинга
+        // Ключ - индекс тайлсета, значение - список тайлов (x, y, gid)
+        std::unordered_map<size_t, std::vector<std::tuple<int, int, int>>> tilesByTileset;
+
+        // Собираем видимые тайлы слоя
         for (int y = startY; y < endY; ++y) {
             for (int x = startX; x < endX; ++x) {
                 int tileIndex = y * layer.width + x;
                 if (tileIndex >= 0 && tileIndex < static_cast<int>(layer.tiles.size())) {
                     int gid = layer.tiles[tileIndex];
                     if (gid > 0) {  // 0 = пустой тайл
-                        renderTile(target, x, y, gid);
+                        // Находим тайлсет для этого тайла
+                        size_t tilesetIdx = 0;
+                        for (size_t i = 0; i < m_tilesets.size(); ++i) {
+                            if (m_tilesets[i].firstGid <= gid) {
+                                tilesetIdx = i;
+                            } else {
+                                break;
+                            }
+                        }
+                        tilesByTileset[tilesetIdx].emplace_back(x, y, gid);
                     }
                 }
             }
+        }
+
+        // Рендерим батчи по тайлсетам
+        for (const auto& [tilesetIdx, tiles] : tilesByTileset) {
+            if (tilesetIdx >= m_tilesets.size()) {
+                continue;
+            }
+
+            const Tileset& tileset = m_tilesets[tilesetIdx];
+            if (!tileset.texture) {
+                continue;
+            }
+
+            // Очищаем VertexArray и резервируем память
+            m_vertices.clear();
+            m_vertices.resize(tiles.size() * 6);  // 6 вершин на тайл (2 треугольника)
+
+            // Добавляем все тайлы этого тайлсета в VertexArray
+            for (size_t i = 0; i < tiles.size(); ++i) {
+                const auto& [tileX, tileY, gid] = tiles[i];
+
+                // Получаем прямоугольник текстуры для этого тайла
+                sf::IntRect texRect = tileset.getTileRect(gid);
+
+                // Позиция тайла в мире
+                float posX = static_cast<float>(tileX * m_tileWidth);
+                float posY = static_cast<float>(tileY * m_tileHeight);
+                float sizeX = static_cast<float>(m_tileWidth);
+                float sizeY = static_cast<float>(m_tileHeight);
+
+                // Координаты текстуры
+                float texLeft = static_cast<float>(texRect.position.x);
+                float texTop = static_cast<float>(texRect.position.y);
+                float texRight = texLeft + static_cast<float>(texRect.size.x);
+                float texBottom = texTop + static_cast<float>(texRect.size.y);
+
+                // Добавляем 6 вершин (2 треугольника образуют quad)
+                size_t vertexIdx = i * 6;
+
+                // Первый треугольник
+                m_vertices[vertexIdx + 0].position = sf::Vector2f(posX, posY);
+                m_vertices[vertexIdx + 0].texCoords = sf::Vector2f(texLeft, texTop);
+
+                m_vertices[vertexIdx + 1].position = sf::Vector2f(posX + sizeX, posY);
+                m_vertices[vertexIdx + 1].texCoords = sf::Vector2f(texRight, texTop);
+
+                m_vertices[vertexIdx + 2].position = sf::Vector2f(posX, posY + sizeY);
+                m_vertices[vertexIdx + 2].texCoords = sf::Vector2f(texLeft, texBottom);
+
+                // Второй треугольник
+                m_vertices[vertexIdx + 3].position = sf::Vector2f(posX + sizeX, posY);
+                m_vertices[vertexIdx + 3].texCoords = sf::Vector2f(texRight, texTop);
+
+                m_vertices[vertexIdx + 4].position = sf::Vector2f(posX + sizeX, posY + sizeY);
+                m_vertices[vertexIdx + 4].texCoords = sf::Vector2f(texRight, texBottom);
+
+                m_vertices[vertexIdx + 5].position = sf::Vector2f(posX, posY + sizeY);
+                m_vertices[vertexIdx + 5].texCoords = sf::Vector2f(texLeft, texBottom);
+            }
+
+            // Одна отрисовка для всех тайлов этого тайлсета
+            sf::RenderStates states;
+            states.texture = tileset.texture.get();
+            target.draw(m_vertices, states);
         }
     }
 }
@@ -197,22 +274,14 @@ sf::FloatRect TileMapSystem::getViewBounds(const sf::View& camera) const {
 }
 
 void TileMapSystem::renderTile(sf::RenderTarget& target, int tileX, int tileY, int gid) {
-    const Tileset* tileset = getTilesetForGid(gid);
-    if (!tileset || !tileset->texture) {
-        return;
-    }
-
-    // Получаем прямоугольник текстуры для этого тайла
-    sf::IntRect texRect = tileset->getTileRect(gid);
-
-    // Создаём спрайт для тайла
-    sf::Sprite sprite(*tileset->texture, texRect);
-    sprite.setPosition(sf::Vector2f(
-        static_cast<float>(tileX * m_tileWidth),
-        static_cast<float>(tileY * m_tileHeight)
-    ));
-
-    target.draw(sprite);
+    // DEPRECATED: Этот метод больше не используется.
+    // Рендеринг теперь выполняется через батчинг в методе render()
+    // для оптимизации производительности (избегаем создания sf::Sprite каждый кадр).
+    // Оставлен для возможной будущей совместимости.
+    (void)target;
+    (void)tileX;
+    (void)tileY;
+    (void)gid;
 }
 
 const TileMapSystem::Tileset* TileMapSystem::getTilesetForGid(int gid) const {
