@@ -171,6 +171,11 @@ void GameState::update(double dt) {
     // Обновление Tile Systems (Milestone 1.3)
     if (m_tilePositionSystem) {
         m_tilePositionSystem->update(m_registry);
+        // TilePositionSystem обновляет слои объектов для Y-sorting
+        // Помечаем слои как измененные для пересортировки в RenderSystem
+        if (m_renderSystem) {
+            m_renderSystem->markLayersDirty();
+        }
     }
 
     if (m_animationSystem) {

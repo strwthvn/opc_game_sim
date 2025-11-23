@@ -43,6 +43,11 @@ public:
      */
     void clearCache();
 
+    /**
+     * @brief Помечает слои как измененные (требуется пересортировка)
+     */
+    void markLayersDirty();
+
 private:
     ResourceManager* m_resourceManager;  ///< Менеджер ресурсов для текстур
     bool m_layersDirty = true;           ///< Флаг необходимости пересортировки слоев

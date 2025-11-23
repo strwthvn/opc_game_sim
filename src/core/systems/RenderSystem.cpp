@@ -47,28 +47,52 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             continue;
         }
 
-        // Пропускаем спрайты без текстуры для проверки bounds
+        // Пропускаем спрайты без текстуры
         if (sprite.textureName.empty()) {
             continue;
         }
 
-        // Frustum culling: ВРЕМЕННО ОТКЛЮЧЕН для отладки
-        // TODO: Реализовать правильный frustum culling с учетом bottom-left origin
-        // const float SPRITE_MARGIN = 64.0f;
-        // sf::FloatRect spriteBounds(sf::Vector2f(transform.x - SPRITE_MARGIN, transform.y - SPRITE_MARGIN),
-        //                            sf::Vector2f(SPRITE_MARGIN * 2, SPRITE_MARGIN * 2));
-        // if (!viewBounds.findIntersection(spriteBounds).has_value()) {
-        //     continue;
-        // }
+        // Frustum culling: вычисляем bounds с учетом bottom-left origin
+        try {
+            const sf::Texture& texture = m_resourceManager->getTexture(sprite.textureName);
+
+            // Получаем размер спрайта (либо из textureRect, либо из размера текстуры)
+            sf::Vector2f spriteSize;
+            if (sprite.textureRect.size.x > 0 && sprite.textureRect.size.y > 0) {
+                sf::Vector2f baseSize = sf::Vector2f(sprite.textureRect.size);
+                spriteSize = sf::Vector2f(baseSize.x * transform.scaleX, baseSize.y * transform.scaleY);
+            } else {
+                sf::Vector2f baseSize = sf::Vector2f(texture.getSize());
+                spriteSize = sf::Vector2f(baseSize.x * transform.scaleX, baseSize.y * transform.scaleY);
+            }
+
+            // Вычисляем bounds с учетом bottom-left origin
+            // Transform.x, Transform.y - это позиция НИЖНЕГО ЛЕВОГО угла спрайта
+            sf::FloatRect spriteBounds(
+                sf::Vector2f(transform.x, transform.y - spriteSize.y),  // top-left
+                spriteSize
+            );
+
+            // Пропускаем объекты вне камеры
+            if (!viewBounds.findIntersection(spriteBounds).has_value()) {
+                continue;
+            }
+        } catch (const std::exception& e) {
+            // Если текстура не найдена, пропускаем culling для этого спрайта
+            LOG_WARN("Frustum culling skipped for entity - texture not found: {}", sprite.textureName);
+        }
 
         renderQueue.push_back({entity, &transform, &sprite, sprite.layer});
     }
 
-    // Сортируем по слоям (ВРЕМЕННО: всегда сортируем до реализации dirty tracking)
-    std::stable_sort(renderQueue.begin(), renderQueue.end(),
-                     [](const RenderData& a, const RenderData& b) {
-                         return a.layer < b.layer;
-                     });
+    // Сортируем по слоям только если они изменились
+    if (m_layersDirty) {
+        std::stable_sort(renderQueue.begin(), renderQueue.end(),
+                         [](const RenderData& a, const RenderData& b) {
+                             return a.layer < b.layer;
+                         });
+        m_layersDirty = false;
+    }
 
     // Отрисовываем все спрайты
     for (const auto& data : renderQueue) {
@@ -146,6 +170,10 @@ void RenderSystem::invalidateCache(entt::entity entity) {
 
 void RenderSystem::clearCache() {
     m_spriteCache.clear();
+}
+
+void RenderSystem::markLayersDirty() {
+    m_layersDirty = true;
 }
 
 } // namespace core
