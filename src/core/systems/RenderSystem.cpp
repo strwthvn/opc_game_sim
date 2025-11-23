@@ -52,27 +52,23 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             continue;
         }
 
-        // Frustum culling: пропускаем объекты вне камеры
-        // Приблизительная проверка по позиции (можно улучшить с учетом размера спрайта)
-        const float SPRITE_MARGIN = 64.0f; // Запас для больших спрайтов
-        sf::FloatRect spriteBounds(sf::Vector2f(transform.x - SPRITE_MARGIN, transform.y - SPRITE_MARGIN),
-                                   sf::Vector2f(SPRITE_MARGIN * 2, SPRITE_MARGIN * 2));
-
-        if (!viewBounds.findIntersection(spriteBounds).has_value()) {
-            continue;
-        }
+        // Frustum culling: ВРЕМЕННО ОТКЛЮЧЕН для отладки
+        // TODO: Реализовать правильный frustum culling с учетом bottom-left origin
+        // const float SPRITE_MARGIN = 64.0f;
+        // sf::FloatRect spriteBounds(sf::Vector2f(transform.x - SPRITE_MARGIN, transform.y - SPRITE_MARGIN),
+        //                            sf::Vector2f(SPRITE_MARGIN * 2, SPRITE_MARGIN * 2));
+        // if (!viewBounds.findIntersection(spriteBounds).has_value()) {
+        //     continue;
+        // }
 
         renderQueue.push_back({entity, &transform, &sprite, sprite.layer});
     }
 
-    // Сортируем по слоям только если изменились (оптимизация Problem 4)
-    if (m_layersDirty) {
-        std::stable_sort(renderQueue.begin(), renderQueue.end(),
-                         [](const RenderData& a, const RenderData& b) {
-                             return a.layer < b.layer;
-                         });
-        m_layersDirty = false;
-    }
+    // Сортируем по слоям (ВРЕМЕННО: всегда сортируем до реализации dirty tracking)
+    std::stable_sort(renderQueue.begin(), renderQueue.end(),
+                     [](const RenderData& a, const RenderData& b) {
+                         return a.layer < b.layer;
+                     });
 
     // Отрисовываем все спрайты
     for (const auto& data : renderQueue) {
