@@ -88,43 +88,40 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             // Получаем текстуру из ResourceManager
             const sf::Texture& texture = m_resourceManager->getTexture(spriteComp.textureName);
 
-            // Используем кешированный спрайт или создаем новый
-            if (spriteComp.dirty || !spriteComp.cachedSprite.has_value()) {
-                // Создаем или пересоздаем спрайт
-                spriteComp.cachedSprite.emplace(texture);
-                sf::Sprite& sprite = *spriteComp.cachedSprite;
-
-                // Устанавливаем прямоугольник текстуры если указан
-                if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
-                    sprite.setTextureRect(spriteComp.textureRect);
-                }
-
-                // Устанавливаем цвет модуляции
-                sprite.setColor(spriteComp.color);
-
-                // Устанавливаем origin спрайта
-                // Для вращения используем центр, иначе левый НИЖНИЙ угол
-                sf::FloatRect bounds = sprite.getLocalBounds();
-                if (transform.rotation != 0.0f) {
-                    // Origin в центре для корректного вращения
-                    sprite.setOrigin(bounds.size / 2.0f);
-                } else {
-                    // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
-                    // (объекты "стоят" на своей Y-координате)
-                    sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
-                }
-
-                spriteComp.dirty = false;
+            // Получаем или создаем спрайт из кеша системы
+            auto it = m_spriteCache.find(data.entity);
+            if (it == m_spriteCache.end()) {
+                // Создаем новый спрайт и добавляем в кеш
+                auto [inserted_it, success] = m_spriteCache.emplace(data.entity, sf::Sprite(texture));
+                it = inserted_it;
             }
 
-            sf::Sprite& sprite = *spriteComp.cachedSprite;
+            sf::Sprite& sprite = it->second;
 
-            // Применяем textureRect каждый кадр для поддержки анимации
+            // Обновляем текстуру (на случай если изменилась)
+            sprite.setTexture(texture);
+
+            // Устанавливаем прямоугольник текстуры если указан
             if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
                 sprite.setTextureRect(spriteComp.textureRect);
             }
 
-            // Применяем трансформацию каждый кадр (SFML 3 uses Vector2f and sf::Angle)
+            // Устанавливаем цвет модуляции
+            sprite.setColor(spriteComp.color);
+
+            // Устанавливаем origin спрайта
+            // Для вращения используем центр, иначе левый НИЖНИЙ угол
+            sf::FloatRect bounds = sprite.getLocalBounds();
+            if (transform.rotation != 0.0f) {
+                // Origin в центре для корректного вращения
+                sprite.setOrigin(bounds.size / 2.0f);
+            } else {
+                // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
+                // (объекты "стоят" на своей Y-координате)
+                sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
+            }
+
+            // Применяем трансформацию (SFML 3 uses Vector2f and sf::Angle)
             sprite.setPosition(sf::Vector2f(transform.x, transform.y));
             sprite.setRotation(sf::degrees(transform.rotation));
             sprite.setScale(sf::Vector2f(transform.scaleX, transform.scaleY));
@@ -137,6 +134,14 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             LOG_ERROR("Failed to render entity: {}", e.what());
         }
     }
+}
+
+void RenderSystem::invalidateCache(entt::entity entity) {
+    m_spriteCache.erase(entity);
+}
+
+void RenderSystem::clearCache() {
+    m_spriteCache.clear();
 }
 
 } // namespace core

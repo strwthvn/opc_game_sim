@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/systems/ISystem.h"
 #include <entt/entt.hpp>
 
 namespace core {
@@ -11,7 +12,7 @@ namespace core {
  * и устанавливая соответствующий textureRect в SpriteComponent.
  * Поддерживает горизонтальные спрайт-листы.
  */
-class AnimationSystem {
+class AnimationSystem : public ISystem {
 public:
     /**
      * @brief Конструктор
@@ -27,7 +28,10 @@ public:
      * @param registry EnTT registry с сущностями
      * @param dt Время с последнего обновления (секунды)
      */
-    void update(entt::registry& registry, double dt);
+    void update(entt::registry& registry, double dt) override;
+
+    int getPriority() const override { return 300; }
+    const char* getName() const override { return "AnimationSystem"; }
 
 private:
     /**

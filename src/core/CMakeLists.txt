@@ -20,6 +20,7 @@ target_sources(Core
         systems/TilePositionSystem.cpp
         systems/AnimationSystem.cpp
         systems/OverlaySystem.cpp
+        systems/SystemScheduler.cpp
 )
 
 target_include_directories(Core

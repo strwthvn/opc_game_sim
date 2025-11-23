@@ -9,6 +9,11 @@ TilePositionSystem::TilePositionSystem() {
     LOG_DEBUG("TilePositionSystem initialized");
 }
 
+void TilePositionSystem::update(entt::registry& registry, double dt) {
+    // ISystem interface - вызывает старый API
+    update(registry);
+}
+
 void TilePositionSystem::update(entt::registry& registry) {
     // Синхронизируем тайловые координаты с пиксельными
     syncPositions(registry);
@@ -24,6 +29,11 @@ void TilePositionSystem::syncPositions(entt::registry& registry) {
     for (auto entity : view) {
         auto& tilePos = view.get<TilePositionComponent>(entity);
         auto& transform = view.get<TransformComponent>(entity);
+
+        // Пропускаем если автоматическая синхронизация отключена
+        if (!tilePos.autoSync) {
+            continue;
+        }
 
         // Конвертируем тайловые координаты в пиксельные
         // Используем левый НИЖНИЙ угол объекта как anchor point
@@ -49,16 +59,12 @@ void TilePositionSystem::updateLayers(entt::registry& registry) {
             // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой Overlays (300)
             int yOffset = std::clamp(tilePos.tileY, 0, 99);
             sprite.layer = RenderLayer::Objects + yOffset;
-
-            // Помечаем кеш спрайта как требующий обновления
-            sprite.markDirty();
         }
         // Для Overlays синхронизируем с тем же Y, что у родителя
         else if (sprite.layer >= RenderLayer::Overlays && sprite.layer < RenderLayer::UIOverlay) {
             // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой UIOverlay (400)
             int yOffset = std::clamp(tilePos.tileY, 0, 99);
             sprite.layer = RenderLayer::Overlays + yOffset;
-            sprite.markDirty();
         }
     }
 }

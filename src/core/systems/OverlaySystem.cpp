@@ -8,6 +8,11 @@ OverlaySystem::OverlaySystem() {
     LOG_DEBUG("OverlaySystem initialized");
 }
 
+void OverlaySystem::update(entt::registry& registry, double dt) {
+    // ISystem interface - вызывает старый API
+    update(registry);
+}
+
 void OverlaySystem::update(entt::registry& registry) {
     // Синхронизируем позиции оверлеев с родителями
     syncOverlayPositions(registry);
@@ -46,11 +51,6 @@ void OverlaySystem::syncOverlayPositions(entt::registry& registry) {
 
         // Наследуем вращение родителя (опционально)
         // transform.rotation = parentTransform->rotation;
-
-        // Если у оверлея есть спрайт, помечаем его как требующий обновления
-        if (auto* sprite = registry.try_get<SpriteComponent>(entity)) {
-            sprite->markDirty();
-        }
     }
 }
 

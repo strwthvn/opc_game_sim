@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/systems/ISystem.h"
 #include <entt/entt.hpp>
 
 namespace core {
@@ -11,7 +12,7 @@ namespace core {
  * обеспечивая корректное позиционирование объектов на тайловой сетке.
  * Также вычисляет layer для Y-sorting (перспектива 3/4).
  */
-class TilePositionSystem {
+class TilePositionSystem : public ISystem {
 public:
     /**
      * @brief Конструктор
@@ -25,8 +26,18 @@ public:
      * в TransformComponent и вычисляет layer для корректного Z-ordering.
      *
      * @param registry EnTT registry с сущностями
+     * @param dt Время с последнего обновления (не используется)
+     */
+    void update(entt::registry& registry, double dt) override;
+
+    /**
+     * @brief Обновление позиций всех тайловых объектов (старый API)
+     * @param registry EnTT registry с сущностями
      */
     void update(entt::registry& registry);
+
+    int getPriority() const override { return 200; }
+    const char* getName() const override { return "TilePositionSystem"; }
 
 private:
     /**

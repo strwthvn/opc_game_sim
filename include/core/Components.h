@@ -49,7 +49,7 @@ struct TransformComponent {
  * @brief Компонент спрайта
  *
  * Хранит информацию о текстуре и отрисовке.
- * Включает кеширование sf::Sprite для оптимизации hot path.
+ * Компонент содержит только чистые данные (без кеша системы).
  */
 struct SpriteComponent {
     std::string textureName;     ///< Имя текстуры в ResourceManager
@@ -58,28 +58,15 @@ struct SpriteComponent {
     int layer = 0;               ///< Слой отрисовки (меньше = раньше)
     bool visible = true;         ///< Видимость спрайта
 
-    // Кеш для оптимизации рендеринга (избегаем создания sf::Sprite каждый кадр)
-    mutable std::optional<sf::Sprite> cachedSprite;  ///< Кешированный SFML спрайт
-    mutable bool dirty = true;   ///< Флаг необходимости обновления кеша
-
-    /**
-     * @brief Помечает кеш как требующий обновления
-     */
-    void markDirty() const {
-        dirty = true;
-    }
-
     /**
      * @brief Конструктор по умолчанию
      */
     SpriteComponent()
         : textureName("")
-        , textureRect()  // Default constructor
+        , textureRect()
         , color(sf::Color::White)
         , layer(0)
-        , visible(true)
-        , cachedSprite(std::nullopt)
-        , dirty(true) {
+        , visible(true) {
     }
 
     /**
@@ -88,12 +75,10 @@ struct SpriteComponent {
      */
     explicit SpriteComponent(const std::string& name)
         : textureName(name)
-        , textureRect()  // Default constructor
+        , textureRect()
         , color(sf::Color::White)
         , layer(0)
-        , visible(true)
-        , cachedSprite(std::nullopt)
-        , dirty(true) {
+        , visible(true) {
     }
 };
 
@@ -239,15 +224,20 @@ struct ChildrenComponent {
 /**
  * @brief Позиция объекта в тайловых координатах
  *
- * Дополняет TransformComponent, который хранит пиксельные координаты.
- * Синхронизация между тайловыми и пиксельными координатами
- * выполняется в TilePositionSystem.
+ * ИСТОЧНИК ПРАВДЫ для позиционирования объектов на тайловой сетке.
+ * TransformComponent автоматически синхронизируется с TilePositionComponent,
+ * когда autoSync = true (по умолчанию).
+ *
+ * Тайловые координаты первичны для статичных объектов (здания, оборудование).
+ * Для динамических объектов (движущиеся сущности) можно отключить autoSync
+ * и управлять TransformComponent напрямую.
  */
 struct TilePositionComponent {
     int tileX = 0;           ///< X координата в тайлах
     int tileY = 0;           ///< Y координата в тайлах
     int widthTiles = 1;      ///< Ширина объекта в тайлах
     int heightTiles = 1;     ///< Высота объекта в тайлах
+    bool autoSync = true;    ///< Автоматическая синхронизация с TransformComponent
 
     /**
      * @brief Получить пиксельную позицию (левый НИЖНИЙ угол)
@@ -269,6 +259,15 @@ struct TilePositionComponent {
             (tileX + widthTiles * 0.5f) * TILE_SIZE,
             (tileY + heightTiles * 0.5f) * TILE_SIZE
         };
+    }
+
+    /**
+     * @brief Преобразовать пиксельные координаты в тайловые
+     * @param pixelPos Позиция в пикселях
+     */
+    void setFromPixelPosition(const sf::Vector2f& pixelPos) {
+        tileX = static_cast<int>(pixelPos.x / TILE_SIZE);
+        tileY = static_cast<int>((pixelPos.y / TILE_SIZE) - heightTiles);
     }
 
     /**
