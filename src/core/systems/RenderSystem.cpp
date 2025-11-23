@@ -90,7 +90,9 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
 
             // Получаем или создаем спрайт из кеша системы
             auto it = m_spriteCache.find(data.entity);
-            if (it == m_spriteCache.end()) {
+            bool isNewSprite = (it == m_spriteCache.end());
+
+            if (isNewSprite) {
                 // Создаем новый спрайт и добавляем в кеш
                 auto [inserted_it, success] = m_spriteCache.emplace(data.entity, sf::Sprite(texture));
                 it = inserted_it;
@@ -101,29 +103,30 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             // Обновляем текстуру (на случай если изменилась)
             sprite.setTexture(texture);
 
-            // Устанавливаем прямоугольник текстуры если указан
+            // Устанавливаем прямоугольник текстуры
+            // Если не указан явно, используем размер всей текстуры
             if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
                 sprite.setTextureRect(spriteComp.textureRect);
             } else {
-                // Если textureRect не указан, используем размер всей текстуры
+                // Для спрайтов без явного textureRect используем всю текстуру
                 sprite.setTextureRect(sf::IntRect(sf::Vector2i(0, 0), sf::Vector2i(texture.getSize())));
             }
 
             // Устанавливаем цвет модуляции
             sprite.setColor(spriteComp.color);
 
-            // Получаем bounds ПОСЛЕ установки textureRect
-            sf::FloatRect bounds = sprite.getLocalBounds();
-
-            // Устанавливаем origin спрайта
-            // Для вращения используем центр, иначе левый НИЖНИЙ угол
-            if (transform.rotation != 0.0f) {
-                // Origin в центре для корректного вращения
-                sprite.setOrigin(bounds.size / 2.0f);
-            } else {
-                // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
-                // (объекты "стоят" на своей Y-координате)
-                sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
+            // Устанавливаем origin ТОЛЬКО при создании нового спрайта
+            if (isNewSprite) {
+                sf::FloatRect bounds = sprite.getLocalBounds();
+                // Для вращения используем центр, иначе левый НИЖНИЙ угол
+                if (transform.rotation != 0.0f) {
+                    // Origin в центре для корректного вращения
+                    sprite.setOrigin(bounds.size / 2.0f);
+                } else {
+                    // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
+                    // (объекты "стоят" на своей Y-координате)
+                    sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
+                }
             }
 
             // Применяем трансформацию (SFML 3 uses Vector2f and sf::Angle)
