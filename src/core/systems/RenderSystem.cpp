@@ -104,14 +104,19 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             // Устанавливаем прямоугольник текстуры если указан
             if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
                 sprite.setTextureRect(spriteComp.textureRect);
+            } else {
+                // Если textureRect не указан, используем размер всей текстуры
+                sprite.setTextureRect(sf::IntRect(sf::Vector2i(0, 0), sf::Vector2i(texture.getSize())));
             }
 
             // Устанавливаем цвет модуляции
             sprite.setColor(spriteComp.color);
 
+            // Получаем bounds ПОСЛЕ установки textureRect
+            sf::FloatRect bounds = sprite.getLocalBounds();
+
             // Устанавливаем origin спрайта
             // Для вращения используем центр, иначе левый НИЖНИЙ угол
-            sf::FloatRect bounds = sprite.getLocalBounds();
             if (transform.rotation != 0.0f) {
                 // Origin в центре для корректного вращения
                 sprite.setOrigin(bounds.size / 2.0f);
