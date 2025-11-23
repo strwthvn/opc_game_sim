@@ -1,0 +1,133 @@
+[21:58:51.127] [info] [OPC_GAME_SIM] Starting new game
+[21:58:51.127] [info] [OPC_GAME_SIM] Changing state to: GameState
+[21:58:51.128] [debug] [OPC_GAME_SIM] Applying change: MenuState -> GameState
+[21:58:51.128] [info] [OPC_GAME_SIM] Exiting MenuState
+[21:58:51.128] [info] [OPC_GAME_SIM] Entering GameState
+[21:58:51.128] [debug] [OPC_GAME_SIM] GameState World View initialized: 2388x1495, centered at tile grid
+[21:58:51.128] [debug] [OPC_GAME_SIM] GameState UI View initialized: 2388x1495 (window size)
+[21:58:51.128] [debug] [OPC_GAME_SIM] ResourceManager::getFont called for: default
+[21:58:51.128] [debug] [OPC_GAME_SIM] Font 'default' found in cache
+[21:58:51.128] [info] [OPC_GAME_SIM] Initializing ECS systems
+[21:58:51.128] [debug] [OPC_GAME_SIM] RenderSystem initialized
+[21:58:51.128] [debug] [OPC_GAME_SIM] UpdateSystem initialized
+[21:58:51.128] [info] [OPC_GAME_SIM] Initializing Tile Systems (Milestone 1.3)
+[21:58:51.128] [debug] [OPC_GAME_SIM] TilePositionSystem initialized
+[21:58:51.128] [debug] [OPC_GAME_SIM] AnimationSystem initialized
+[21:58:51.128] [debug] [OPC_GAME_SIM] OverlaySystem initialized
+[21:58:51.128] [info] [OPC_GAME_SIM] Creating test texture
+[21:58:51.130] [debug] [OPC_GAME_SIM] Texture loaded from image: test_square
+[21:58:51.130] [info] [OPC_GAME_SIM] Test texture created and loaded into ResourceManager
+[21:58:51.130] [info] [OPC_GAME_SIM] Old test entities disabled - using tile system
+[21:58:51.130] [info] [OPC_GAME_SIM] Game scene initialized with ECS
+[21:58:51.130] [info] [OPC_GAME_SIM] Creating tile-based test scene (Milestone 1.3)
+[21:58:51.130] [info] [OPC_GAME_SIM] Creating tile textures (32x32)
+[21:58:51.132] [debug] [OPC_GAME_SIM] Texture loaded from image: tile_green
+[21:58:51.133] [debug] [OPC_GAME_SIM] Texture loaded from image: tile_blue
+[21:58:51.135] [debug] [OPC_GAME_SIM] Texture loaded from image: tile_brown
+[21:58:51.137] [debug] [OPC_GAME_SIM] Texture loaded from image: tile_yellow_2x2
+[21:58:51.139] [debug] [OPC_GAME_SIM] Texture loaded from image: indicator_red
+[21:58:51.141] [debug] [OPC_GAME_SIM] Texture loaded from image: anim_pulse
+[21:58:51.141] [info] [OPC_GAME_SIM] Creating ground layer
+[21:58:51.142] [info] [OPC_GAME_SIM] Creating industrial objects
+[21:58:51.142] [debug] [OPC_GAME_SIM] Created object 0 at tile (1, 1)
+[21:58:51.142] [debug] [OPC_GAME_SIM] Created object 1 at tile (3, 2)
+[21:58:51.142] [debug] [OPC_GAME_SIM] Created object 2 at tile (5, 3)
+[21:58:51.142] [debug] [OPC_GAME_SIM] Created object 3 at tile (7, 4)
+[21:58:51.142] [debug] [OPC_GAME_SIM] Created object 4 at tile (9, 5)
+[21:58:51.142] [info] [OPC_GAME_SIM] Created 2x2 tile object at (8, 2)
+[21:58:51.143] [info] [OPC_GAME_SIM] Created animated object at (5, 6)
+[21:58:51.143] [info] [OPC_GAME_SIM] Created object with overlay at (3, 6)
+[21:58:51.143] [info] [OPC_GAME_SIM] Tile test scene created with 105 entities
+[21:58:51.170] [debug] [OPC_GAME_SIM] Overlay sync: parent=(96, 192), offset=(20, 4), result=(116, 196)
+[21:58:51.171] [debug] [OPC_GAME_SIM] Overlay sync: parent=(96, 192), offset=(20, 4), result=(116, 196)
+[21:58:51.220] [debug] [OPC_GAME_SIM] Overlay sync: parent=(96, 192), offset=(20, 4), result=(116, 196)
+[21:58:51.221] [debug] [OPC_GAME_SIM] Overlay sync: parent=(96, 192), offset=(20, 4), result=(116, 196)
+[21:58:51.221] [debug] [OPC_GAME_SIM] Overlay sync: parent=(96, 192), offset=(20, 4), result=(116, 196)
+[21:58:52.927] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.4 (min=57.5, max=59.9), UPS=60.4, FrameTime=16.83ms
+[21:58:53.062] [debug] [OPC_GAME_SIM] Camera zoom: 0.90
+[21:58:53.213] [debug] [OPC_GAME_SIM] Camera zoom: 0.80
+[21:58:53.381] [debug] [OPC_GAME_SIM] Camera zoom: 0.70
+[21:58:53.448] [debug] [OPC_GAME_SIM] Camera zoom: 0.60
+[21:58:53.700] [debug] [OPC_GAME_SIM] StateManager::render() called 600 times
+[21:58:53.716] [debug] [OPC_GAME_SIM] Application::render() called 600 times
+[21:58:53.716] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.716] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.749] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.800] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.817] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.851] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.884] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:53.968] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:54.035] [debug] [OPC_GAME_SIM] Camera zoom: 0.50
+[21:58:57.938] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=57.6, max=59.9), UPS=59.5, FrameTime=16.80ms
+[21:58:58.764] [debug] [OPC_GAME_SIM] StateManager::render() called 900 times
+[21:58:58.779] [debug] [OPC_GAME_SIM] Application::render() called 900 times
+[21:59:02.954] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=56.9, max=59.9), UPS=59.5, FrameTime=16.81ms
+[21:59:03.880] [debug] [OPC_GAME_SIM] StateManager::render() called 1200 times
+[21:59:03.895] [debug] [OPC_GAME_SIM] Application::render() called 1200 times
+[21:59:07.957] [info] [OPC_GAME_SIM] Performance metrics: FPS=58.2 (min=38.6, max=59.9), UPS=59.2, FrameTime=17.18ms
+[21:59:08.989] [debug] [OPC_GAME_SIM] StateManager::render() called 1500 times
+[21:59:09.004] [debug] [OPC_GAME_SIM] Application::render() called 1500 times
+[21:59:12.970] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.6 (min=57.9, max=60.0), UPS=59.6, FrameTime=16.79ms
+[21:59:14.032] [debug] [OPC_GAME_SIM] StateManager::render() called 1800 times
+[21:59:14.048] [debug] [OPC_GAME_SIM] Application::render() called 1800 times
+[21:59:17.976] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.6 (min=58.5, max=59.9), UPS=60.6, FrameTime=16.79ms
+[21:59:19.069] [debug] [OPC_GAME_SIM] StateManager::render() called 2100 times
+[21:59:19.085] [debug] [OPC_GAME_SIM] Application::render() called 2100 times
+[21:59:19.952] [warning] [OPC_GAME_SIM] Frame time spike detected: 0.732s (capped at 0.25s)
+[21:59:23.461] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=58.7, max=59.9), UPS=60.5, FrameTime=16.80ms
+[21:59:24.839] [debug] [OPC_GAME_SIM] StateManager::render() called 2400 times
+[21:59:24.855] [debug] [OPC_GAME_SIM] Application::render() called 2400 times
+[21:59:28.462] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.0 (min=51.9, max=59.9), UPS=60.0, FrameTime=16.94ms
+[21:59:29.929] [debug] [OPC_GAME_SIM] StateManager::render() called 2700 times
+[21:59:29.943] [debug] [OPC_GAME_SIM] Application::render() called 2700 times
+[21:59:33.469] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=59.0, max=59.8), UPS=59.5, FrameTime=16.82ms
+[21:59:34.989] [debug] [OPC_GAME_SIM] StateManager::render() called 3000 times
+[21:59:35.003] [debug] [OPC_GAME_SIM] Application::render() called 3000 times
+[21:59:38.481] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=59.0, max=59.8), UPS=60.5, FrameTime=16.81ms
+[21:59:40.055] [debug] [OPC_GAME_SIM] StateManager::render() called 3300 times
+[21:59:40.071] [debug] [OPC_GAME_SIM] Application::render() called 3300 times
+[21:59:43.484] [info] [OPC_GAME_SIM] Performance metrics: FPS=57.5 (min=32.5, max=59.8), UPS=60.4, FrameTime=17.40ms
+[21:59:45.169] [debug] [OPC_GAME_SIM] StateManager::render() called 3600 times
+[21:59:45.185] [debug] [OPC_GAME_SIM] Application::render() called 3600 times
+[21:59:48.489] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.0 (min=48.3, max=59.8), UPS=60.0, FrameTime=16.95ms
+[21:59:50.225] [debug] [OPC_GAME_SIM] StateManager::render() called 3900 times
+[21:59:50.240] [debug] [OPC_GAME_SIM] Application::render() called 3900 times
+[21:59:53.233] [warning] [OPC_GAME_SIM] Frame time spike detected: 0.710s (capped at 0.25s)
+[21:59:53.965] [info] [OPC_GAME_SIM] Performance metrics: FPS=34.8 (min=1.4, max=59.8), UPS=41.0, FrameTime=28.70ms
+[21:59:56.025] [debug] [OPC_GAME_SIM] StateManager::render() called 4200 times
+[21:59:56.041] [debug] [OPC_GAME_SIM] Application::render() called 4200 times
+[21:59:58.966] [info] [OPC_GAME_SIM] Performance metrics: FPS=58.8 (min=44.4, max=60.0), UPS=59.8, FrameTime=16.99ms
+[22:00:01.106] [debug] [OPC_GAME_SIM] StateManager::render() called 4500 times
+[22:00:01.122] [debug] [OPC_GAME_SIM] Application::render() called 4500 times
+[22:00:03.976] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.4 (min=57.3, max=59.9), UPS=60.4, FrameTime=16.84ms
+[22:00:06.276] [debug] [OPC_GAME_SIM] StateManager::render() called 4800 times
+[22:00:06.292] [debug] [OPC_GAME_SIM] Application::render() called 4800 times
+[22:00:08.981] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=58.7, max=59.9), UPS=59.5, FrameTime=16.80ms
+[22:00:11.408] [debug] [OPC_GAME_SIM] StateManager::render() called 5100 times
+[22:00:11.423] [debug] [OPC_GAME_SIM] Application::render() called 5100 times
+[22:00:13.993] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=57.8, max=59.9), UPS=59.5, FrameTime=16.80ms
+[22:00:16.575] [debug] [OPC_GAME_SIM] StateManager::render() called 5400 times
+[22:00:16.592] [debug] [OPC_GAME_SIM] Application::render() called 5400 times
+[22:00:18.995] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.0 (min=48.4, max=59.8), UPS=60.0, FrameTime=16.94ms
+[22:00:21.724] [debug] [OPC_GAME_SIM] StateManager::render() called 5700 times
+[22:00:21.739] [debug] [OPC_GAME_SIM] Application::render() called 5700 times
+[22:00:24.006] [info] [OPC_GAME_SIM] Performance metrics: FPS=57.9 (min=46.8, max=59.9), UPS=59.8, FrameTime=17.29ms
+[22:00:26.381] [warning] [OPC_GAME_SIM] Frame time spike detected: 0.758s (capped at 0.25s)
+[22:00:27.576] [debug] [OPC_GAME_SIM] StateManager::render() called 6000 times
+[22:00:27.591] [debug] [OPC_GAME_SIM] Application::render() called 6000 times
+[22:00:29.524] [info] [OPC_GAME_SIM] Performance metrics: FPS=58.5 (min=48.9, max=59.9), UPS=59.5, FrameTime=17.09ms
+[22:00:32.694] [debug] [OPC_GAME_SIM] StateManager::render() called 6300 times
+[22:00:32.709] [debug] [OPC_GAME_SIM] Application::render() called 6300 times
+[22:00:34.525] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=59.0, max=59.9), UPS=59.5, FrameTime=16.80ms
+[22:00:37.736] [debug] [OPC_GAME_SIM] StateManager::render() called 6600 times
+[22:00:37.751] [debug] [OPC_GAME_SIM] Application::render() called 6600 times
+[22:00:39.532] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.5 (min=58.4, max=59.8), UPS=60.6, FrameTime=16.80ms
+[22:00:42.786] [debug] [OPC_GAME_SIM] StateManager::render() called 6900 times
+[22:00:42.801] [debug] [OPC_GAME_SIM] Application::render() called 6900 times
+[22:00:44.535] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.3 (min=53.3, max=59.9), UPS=60.3, FrameTime=16.85ms
+[22:00:47.854] [debug] [OPC_GAME_SIM] StateManager::render() called 7200 times
+[22:00:47.868] [debug] [OPC_GAME_SIM] Application::render() called 7200 times
+[22:00:49.547] [info] [OPC_GAME_SIM] Performance metrics: FPS=59.6 (min=58.6, max=59.9), UPS=60.6, FrameTime=16.78ms
+[22:00:52.896] [debug] [OPC_GAME_SIM] StateManager::render() called 7500 times
+[22:00:52.912] [debug] [OPC_GAME_SIM] Application::render() called 7500 times

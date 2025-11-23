@@ -373,26 +373,26 @@ void GameState::createTileTestScene() {
         return;
     }
 
-    // Создаем тестовые тайловые спрайты разных цветов
-    LOG_INFO("Creating tile textures (32x32)");
+    // Загружаем тестовые PNG тайлы из assets/sprites/TEST
+    LOG_INFO("Loading tile textures from PNG files");
 
-    // Зеленый тайл (земля)
-    sf::Image greenTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(34, 139, 34));
-    resources->loadTextureFromImage("tile_green", greenTile);
+    // Зеленый тайл (земля) - из PNG файла
+    if (!resources->loadTexture("tile_green", "assets/sprites/TEST/testFloor1.png")) {
+        LOG_ERROR("Failed to load testFloor1.png");
+    } else {
+        LOG_INFO("Loaded tile_green from testFloor1.png");
+    }
 
-    // Синий тайл (вода)
+    // Синий тайл (вода) - создаем в памяти
     sf::Image blueTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(30, 144, 255));
     resources->loadTextureFromImage("tile_blue", blueTile);
 
-    // Коричневый тайл (объект)
-    sf::Image brownTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(139, 69, 19));
-    for (unsigned int i = 0; i < TILE_SIZE; ++i) {
-        brownTile.setPixel(sf::Vector2u(i, 0), sf::Color::White);
-        brownTile.setPixel(sf::Vector2u(i, TILE_SIZE - 1), sf::Color::White);
-        brownTile.setPixel(sf::Vector2u(0, i), sf::Color::White);
-        brownTile.setPixel(sf::Vector2u(TILE_SIZE - 1, i), sf::Color::White);
+    // Коричневый тайл (объект) - из PNG файла
+    if (!resources->loadTexture("tile_brown", "assets/sprites/TEST/testObj.png")) {
+        LOG_ERROR("Failed to load testObj.png");
+    } else {
+        LOG_INFO("Loaded tile_brown from testObj.png");
     }
-    resources->loadTextureFromImage("tile_brown", brownTile);
 
     // Желтый тайл 2x2 (большой объект)
     sf::Image yellowBigTile(sf::Vector2u(TILE_SIZE * 2, TILE_SIZE * 2), sf::Color(255, 215, 0));
@@ -415,27 +415,12 @@ void GameState::createTileTestScene() {
     }
     resources->loadTextureFromImage("indicator_red", redIndicator);
 
-    // Спрайт-лист для анимации (4 кадра по 32x32 = 128x32)
-    sf::Image animSheet(sf::Vector2u(TILE_SIZE * 4, TILE_SIZE), sf::Color::Transparent);
-    for (int frame = 0; frame < 4; ++frame) {
-        int intensity = 64 + frame * 48;  // От темного к светлому
-        sf::Color color(intensity, 0, intensity);  // Пурпурный градиент
-
-        for (unsigned int y = 0; y < TILE_SIZE; ++y) {
-            for (unsigned int x = 0; x < TILE_SIZE; ++x) {
-                animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + x, y), color);
-            }
-        }
-
-        // Рамка для каждого кадра
-        for (unsigned int i = 0; i < TILE_SIZE; ++i) {
-            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + i, 0), sf::Color::White);
-            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + i, TILE_SIZE - 1), sf::Color::White);
-            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE, i), sf::Color::White);
-            animSheet.setPixel(sf::Vector2u(frame * TILE_SIZE + TILE_SIZE - 1, i), sf::Color::White);
-        }
+    // Спрайт-лист для анимации - загружаем из PNG файла (5 кадров по 32x32 = 160x32)
+    if (!resources->loadTexture("anim_pulse", "assets/sprites/TEST/testObjAnimation.png")) {
+        LOG_ERROR("Failed to load testObjAnimation.png");
+    } else {
+        LOG_INFO("Loaded anim_pulse from testObjAnimation.png (5 frames)");
     }
-    resources->loadTextureFromImage("anim_pulse", animSheet);
 
     // === 1. Создаем "пол" из зеленых тайлов (слой Ground) ===
     LOG_INFO("Creating ground layer");
@@ -518,17 +503,17 @@ void GameState::createTileTestScene() {
         sprite.layer = RenderLayer::Objects;
         sprite.visible = true;
 
-        // Добавляем анимацию
+        // Добавляем анимацию (5 кадров из testObjAnimation.png)
         auto& anim = m_registry.emplace<AnimationComponent>(entity);
         anim.currentAnimation = "pulse";
-        anim.frameCount = 4;
+        anim.frameCount = 5;  // 5 кадров из PNG файла
         anim.frameWidth = TILE_SIZE;
         anim.frameHeight = TILE_SIZE;
-        anim.frameDelay = 0.3f;  // 3 FPS
+        anim.frameDelay = 0.3f;  // ~3 FPS
         anim.loop = true;
         anim.playing = true;
 
-        LOG_INFO("Created animated object at (5, 6)");
+        LOG_INFO("Created animated object at (5, 6) with 5-frame animation");
     }
 
     // === 5. Объект с оверлеем (индикатором) ===
