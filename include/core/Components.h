@@ -20,14 +20,26 @@ namespace core {
 constexpr int TILE_SIZE = 32;
 
 /**
- * @brief Константы слоёв отрисовки для корректного z-ordering
+ * @brief Слои отрисовки для корректного z-ordering
+ *
+ * Использует enum class для строгой типизации и возможности
+ * дальнейшего расширения через конфигурационные файлы.
  */
-namespace RenderLayer {
-    constexpr int Background = 0;    ///< Фон (под картой)
-    constexpr int Ground = 100;      ///< Базовая карта (пол, земля)
-    constexpr int Objects = 200;     ///< Промышленные объекты (+ tileY для Y-sorting)
-    constexpr int Overlays = 300;    ///< Индикаторы, кнопки состояния (+ tileY для синхронизации)
-    constexpr int UIOverlay = 400;   ///< HUD, курсор, UI элементы в игровом мире
+enum class RenderLayer : int {
+    Background = 0,    ///< Фон (под картой)
+    Ground = 100,      ///< Базовая карта (пол, земля)
+    Objects = 200,     ///< Промышленные объекты (+ tileY для Y-sorting)
+    Overlays = 300,    ///< Индикаторы, кнопки состояния (+ tileY для синхронизации)
+    UIOverlay = 400    ///< HUD, курсор, UI элементы в игровом мире
+};
+
+/**
+ * @brief Преобразование RenderLayer в int для арифметических операций
+ * @param layer Слой отрисовки
+ * @return Целочисленное значение слоя
+ */
+inline constexpr int toInt(RenderLayer layer) {
+    return static_cast<int>(layer);
 }
 
 // ============== БАЗОВЫЕ КОМПОНЕНТЫ ==============

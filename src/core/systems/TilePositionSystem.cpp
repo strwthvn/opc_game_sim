@@ -54,17 +54,17 @@ void TilePositionSystem::updateLayers(entt::registry& registry) {
 
         // Если объект на слое Objects, применяем Y-sorting
         // Объекты с большим Y рисуются позже (находятся "ближе" к камере)
-        if (sprite.layer >= RenderLayer::Objects && sprite.layer < RenderLayer::Overlays) {
+        if (sprite.layer >= toInt(RenderLayer::Objects) && sprite.layer < toInt(RenderLayer::Overlays)) {
             // Базовый слой Objects (200) + позиция по Y для Y-sorting
             // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой Overlays (300)
             int yOffset = std::clamp(tilePos.tileY, 0, 99);
-            sprite.layer = RenderLayer::Objects + yOffset;
+            sprite.layer = toInt(RenderLayer::Objects) + yOffset;
         }
         // Для Overlays синхронизируем с тем же Y, что у родителя
-        else if (sprite.layer >= RenderLayer::Overlays && sprite.layer < RenderLayer::UIOverlay) {
+        else if (sprite.layer >= toInt(RenderLayer::Overlays) && sprite.layer < toInt(RenderLayer::UIOverlay)) {
             // Ограничиваем yOffset в диапазоне [0, 99] чтобы не переполнить слой UIOverlay (400)
             int yOffset = std::clamp(tilePos.tileY, 0, 99);
-            sprite.layer = RenderLayer::Overlays + yOffset;
+            sprite.layer = toInt(RenderLayer::Overlays) + yOffset;
         }
     }
 }

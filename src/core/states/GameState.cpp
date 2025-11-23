@@ -441,7 +441,7 @@ void GameState::createTileTestScene() {
 
             auto& sprite = m_registry.emplace<SpriteComponent>(entity);
             sprite.textureName = "tile_green";
-            sprite.layer = RenderLayer::Ground;
+            sprite.layer = toInt(RenderLayer::Ground);
             sprite.visible = true;
         }
     }
@@ -473,7 +473,7 @@ void GameState::createTileTestScene() {
 
         auto& sprite = m_registry.emplace<SpriteComponent>(entity);
         sprite.textureName = "tile_brown";
-        sprite.layer = RenderLayer::Objects;  // Y-sorting будет применен TilePositionSystem
+        sprite.layer = toInt(RenderLayer::Objects);  // Y-sorting будет применен TilePositionSystem
         sprite.visible = true;
 
         LOG_DEBUG("Created object {} at tile ({}, {})", i, 1 + i * 2, 1 + i);
@@ -489,7 +489,7 @@ void GameState::createTileTestScene() {
 
         auto& sprite = m_registry.emplace<SpriteComponent>(entity);
         sprite.textureName = "tile_yellow_2x2";
-        sprite.layer = RenderLayer::Objects;
+        sprite.layer = toInt(RenderLayer::Objects);
         sprite.visible = true;
 
         LOG_INFO("Created 2x2 tile object at (8, 2)");
@@ -505,7 +505,7 @@ void GameState::createTileTestScene() {
 
         auto& sprite = m_registry.emplace<SpriteComponent>(entity);
         sprite.textureName = "anim_pulse";
-        sprite.layer = RenderLayer::Objects;
+        sprite.layer = toInt(RenderLayer::Objects);
         sprite.visible = true;
 
         // Добавляем анимацию (5 кадров из testObjAnimation.png)
@@ -532,7 +532,7 @@ void GameState::createTileTestScene() {
 
         auto& sprite = m_registry.emplace<SpriteComponent>(parent);
         sprite.textureName = "tile_brown";
-        sprite.layer = RenderLayer::Objects;
+        sprite.layer = toInt(RenderLayer::Objects);
         sprite.visible = true;
 
         // Создаем дочернюю сущность (оверлей)
@@ -546,7 +546,7 @@ void GameState::createTileTestScene() {
 
         auto& overlaySprite = m_registry.emplace<SpriteComponent>(overlay);
         overlaySprite.textureName = "indicator_red";
-        overlaySprite.layer = RenderLayer::Overlays;
+        overlaySprite.layer = toInt(RenderLayer::Overlays);
         overlaySprite.visible = true;
 
         // Компонент оверлея (смещение 20 пикселей вправо, 4 вниз от родителя)
