@@ -1,5 +1,6 @@
 #include "core/states/MenuState.h"
 #include "core/states/GameState.h"
+#include "core/states/SettingsState.h"
 #include "core/StateManager.h"
 #include "core/ResourceManager.h"
 #include "core/Logger.h"
@@ -239,8 +240,8 @@ void MenuState::activateSelected() {
             break;
 
         case MenuItem::Settings:
-            LOG_INFO("Settings not implemented yet");
-            // TODO: Состояние настроек
+            LOG_INFO("Opening settings menu");
+            m_stateManager->pushState(std::make_unique<SettingsState>(m_stateManager));
             break;
 
         case MenuItem::Exit:

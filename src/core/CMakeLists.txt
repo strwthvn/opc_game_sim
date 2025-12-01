@@ -14,6 +14,7 @@ target_sources(Core
         states/MenuState.cpp
         states/GameState.cpp
         states/PauseState.cpp
+        states/SettingsState.cpp
         systems/RenderSystem.cpp
         systems/UpdateSystem.cpp
         systems/LifetimeSystem.cpp
