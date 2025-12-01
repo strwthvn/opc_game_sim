@@ -11,19 +11,25 @@ namespace core {
  * Синхронизирует TilePositionComponent с TransformComponent,
  * обеспечивая корректное позиционирование объектов на тайловой сетке.
  * Также вычисляет layer для Y-sorting (перспектива 3/4).
+ *
+ * Использует EnTT observers для реактивного обновления только измененных
+ * объектов, что значительно повышает производительность при большом
+ * количестве статичных объектов.
  */
 class TilePositionSystem : public ISystem {
 public:
     /**
      * @brief Конструктор
+     * @param registry EnTT registry для инициализации observers
      */
-    TilePositionSystem();
+    explicit TilePositionSystem(entt::registry& registry);
 
     /**
      * @brief Обновление позиций всех тайловых объектов
      *
      * Синхронизирует тайловые координаты с пиксельными координатами
      * в TransformComponent и вычисляет layer для корректного Z-ordering.
+     * Обрабатывает только измененные объекты благодаря observers.
      *
      * @param registry EnTT registry с сущностями
      * @param dt Время с последнего обновления (не используется)
@@ -44,7 +50,8 @@ private:
      * @brief Синхронизирует тайловую позицию с трансформом
      *
      * Конвертирует тайловые координаты в пиксельные и обновляет
-     * TransformComponent.
+     * TransformComponent. Обрабатывает только измененные сущности
+     * из observer.
      *
      * @param registry EnTT registry
      */
@@ -55,10 +62,26 @@ private:
      *
      * Объекты на слое Objects сортируются по Y-координате
      * для создания эффекта перспективы 3/4.
+     * Обрабатывает только измененные сущности из observer.
      *
      * @param registry EnTT registry
      */
     void updateLayers(entt::registry& registry);
+
+    /**
+     * @brief Observer для отслеживания изменений TilePositionComponent
+     *
+     * Автоматически регистрирует сущности при изменении или добавлении
+     * TilePositionComponent, позволяя обновлять только измененные объекты.
+     */
+    entt::observer m_tilePositionObserver;
+
+    /**
+     * @brief Observer для отслеживания изменений layer в SpriteComponent
+     *
+     * Отслеживает изменения слоя для своевременного обновления Y-sorting.
+     */
+    entt::observer m_layerObserver;
 };
 
 } // namespace core
