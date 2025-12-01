@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <optional>
+#include <functional>
 
 namespace core {
 
@@ -228,6 +229,88 @@ struct ChildrenComponent {
 
     size_t childCount() const {
         return children.size();
+    }
+};
+
+// ============== КОМПОНЕНТЫ КОЛЛИЗИЙ ==============
+
+/**
+ * @brief Компонент коллизий для AABB проверки столкновений
+ *
+ * Используется для простой тайловой системы коллизий до интеграции Box2D.
+ * Поддерживает solid коллизии (блокирующие движение) и trigger коллизии (детекция без блокирования).
+ * Коллизии проверяются системой CollisionSystem с приоритетом 100.
+ */
+struct CollisionComponent {
+    bool isSolid = true;        ///< Блокирует движение других объектов
+    bool isTrigger = false;     ///< Только детекция (не блокирует движение)
+    sf::FloatRect bounds;       ///< AABB границы коллайдера (относительно позиции сущности)
+    std::string layer;          ///< Слой коллизий ("player", "wall", "sensor", "industrial")
+
+    /**
+     * @brief Коллбек при начале коллизии
+     *
+     * Вызывается когда эта сущность впервые сталкивается с другой.
+     * Параметр: entt::entity - сущность, с которой произошло столкновение.
+     */
+    std::function<void(entt::entity)> onCollisionEnter;
+
+    /**
+     * @brief Коллбек при продолжении коллизии
+     *
+     * Вызывается каждый кадр, пока коллизия активна.
+     */
+    std::function<void(entt::entity)> onCollisionStay;
+
+    /**
+     * @brief Коллбек при окончании коллизии
+     *
+     * Вызывается когда коллизия прекращается.
+     */
+    std::function<void(entt::entity)> onCollisionExit;
+
+    /**
+     * @brief Конструктор по умолчанию
+     */
+    CollisionComponent()
+        : isSolid(true)
+        , isTrigger(false)
+        , bounds(sf::Vector2f(0.0f, 0.0f), sf::Vector2f(TILE_SIZE, TILE_SIZE))
+        , layer("default") {
+    }
+
+    /**
+     * @brief Конструктор с параметрами
+     * @param solid Блокирует ли движение
+     * @param trigger Является ли триггером
+     * @param layerName Слой коллизий
+     */
+    explicit CollisionComponent(bool solid, bool trigger = false, const std::string& layerName = "default")
+        : isSolid(solid)
+        , isTrigger(trigger)
+        , bounds(sf::Vector2f(0.0f, 0.0f), sf::Vector2f(TILE_SIZE, TILE_SIZE))
+        , layer(layerName) {
+    }
+
+    /**
+     * @brief Получить мировые границы коллайдера
+     * @param transform Transform компонент сущности
+     * @return Мировые AABB границы
+     */
+    sf::FloatRect getWorldBounds(const TransformComponent& transform) const {
+        return sf::FloatRect(
+            sf::Vector2f(transform.x + bounds.position.x, transform.y + bounds.position.y),
+            bounds.size
+        );
+    }
+
+    /**
+     * @brief Установить размер коллайдера на основе тайловых размеров
+     * @param widthTiles Ширина в тайлах
+     * @param heightTiles Высота в тайлах
+     */
+    void setFromTileSize(int widthTiles, int heightTiles) {
+        bounds.size = sf::Vector2f(widthTiles * TILE_SIZE, heightTiles * TILE_SIZE);
     }
 };
 

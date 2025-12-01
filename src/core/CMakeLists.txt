@@ -17,6 +17,7 @@ target_sources(Core
         systems/RenderSystem.cpp
         systems/UpdateSystem.cpp
         systems/LifetimeSystem.cpp
+        systems/CollisionSystem.cpp
         systems/TilePositionSystem.cpp
         systems/AnimationSystem.cpp
         systems/OverlaySystem.cpp

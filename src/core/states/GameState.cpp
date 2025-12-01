@@ -7,6 +7,7 @@
 #include "core/systems/RenderSystem.h"
 #include "core/systems/UpdateSystem.h"
 #include "core/systems/LifetimeSystem.h"
+#include "core/systems/CollisionSystem.h"
 #include "core/systems/TilePositionSystem.h"
 #include "core/systems/AnimationSystem.h"
 #include "core/systems/OverlaySystem.h"
@@ -177,6 +178,11 @@ void GameState::update(double dt) {
         m_lifetimeSystem->update(m_registry, dt);
     }
 
+    // Обновление системы коллизий (приоритет 100)
+    if (m_collisionSystem) {
+        m_collisionSystem->update(m_registry, dt);
+    }
+
     // Обновление Tile Systems (Milestone 1.3)
     if (m_tilePositionSystem) {
         m_tilePositionSystem->update(m_registry);
@@ -283,6 +289,7 @@ void GameState::initializeScene() {
     m_renderSystem = std::make_unique<RenderSystem>(resources);
     m_updateSystem = std::make_unique<UpdateSystem>();
     m_lifetimeSystem = std::make_unique<LifetimeSystem>();
+    m_collisionSystem = std::make_unique<CollisionSystem>();
 
     // Инициализация Tile Systems (Milestone 1.3)
     LOG_INFO("Initializing Tile Systems (Milestone 1.3)");
@@ -574,7 +581,121 @@ void GameState::createTileTestScene() {
         LOG_INFO("Created object with overlay at (3, 6)");
     }
 
-    LOG_INFO("Tile test scene created with {} entities", m_registry.storage<entt::entity>().size());
+    // === 6. Тестирование системы коллизий (Milestone 1.3.1 - Task 1.2) ===
+    LOG_INFO("Creating collision test objects");
+
+    // Создаем статичные стены с solid коллизиями
+    {
+        // Левая стена
+        auto wall1 = m_registry.create();
+        m_registry.emplace<NameComponent>(wall1, "Wall_Left");
+        m_registry.emplace<TilePositionComponent>(wall1, 0, 3, 1, 2);
+        m_registry.emplace<TransformComponent>(wall1);
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(wall1);
+        sprite.textureName = "tile_brown";
+        sprite.layer = toInt(RenderLayer::Objects);
+        sprite.visible = true;
+
+        auto& collision = m_registry.emplace<CollisionComponent>(wall1);
+        collision.isSolid = true;
+        collision.isTrigger = false;
+        collision.layer = "wall";
+        collision.setFromTileSize(1, 2);
+        collision.onCollisionEnter = [](entt::entity other) {
+            LOG_INFO("Wall collision ENTER with entity {}", static_cast<uint32_t>(other));
+        };
+
+        LOG_INFO("Created wall at (0, 3) with solid collision");
+    }
+
+    // Правая стена
+    {
+        auto wall2 = m_registry.create();
+        m_registry.emplace<NameComponent>(wall2, "Wall_Right");
+        m_registry.emplace<TilePositionComponent>(wall2, 11, 3, 1, 2);
+        m_registry.emplace<TransformComponent>(wall2);
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(wall2);
+        sprite.textureName = "tile_brown";
+        sprite.layer = toInt(RenderLayer::Objects);
+        sprite.visible = true;
+
+        auto& collision = m_registry.emplace<CollisionComponent>(wall2);
+        collision.isSolid = true;
+        collision.layer = "wall";
+        collision.setFromTileSize(1, 2);
+
+        LOG_INFO("Created wall at (11, 3) with solid collision");
+    }
+
+    // Создаем движущийся объект с коллизией
+    {
+        auto movingObj = m_registry.create();
+        m_registry.emplace<NameComponent>(movingObj, "MovingObject");
+        m_registry.emplace<TilePositionComponent>(movingObj, 6, 0, 1, 1);
+
+        auto& transform = m_registry.emplace<TransformComponent>(movingObj);
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(movingObj);
+        sprite.textureName = "test_square";  // Используем красный квадрат
+        sprite.layer = toInt(RenderLayer::Objects);
+        sprite.visible = true;
+        sprite.color = sf::Color::Cyan;  // Выделяем цветом
+
+        // Добавляем скорость (движется вниз)
+        auto& velocity = m_registry.emplace<VelocityComponent>(movingObj);
+        velocity.vx = 0.0f;
+        velocity.vy = 50.0f;  // Медленное движение вниз
+
+        // Добавляем коллизию
+        auto& collision = m_registry.emplace<CollisionComponent>(movingObj);
+        collision.isSolid = false;  // Не блокирует, но детектирует
+        collision.layer = "player";
+        collision.setFromTileSize(1, 1);
+
+        collision.onCollisionEnter = [](entt::entity other) {
+            LOG_WARN("MovingObject collision ENTER with entity {}", static_cast<uint32_t>(other));
+        };
+
+        collision.onCollisionExit = [](entt::entity other) {
+            LOG_INFO("MovingObject collision EXIT with entity {}", static_cast<uint32_t>(other));
+        };
+
+        LOG_INFO("Created moving object at (6, 0) with collision detection");
+    }
+
+    // Создаем trigger зону
+    {
+        auto trigger = m_registry.create();
+        m_registry.emplace<NameComponent>(trigger, "TriggerZone");
+        m_registry.emplace<TilePositionComponent>(trigger, 5, 3, 3, 2);
+        m_registry.emplace<TransformComponent>(trigger);
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(trigger);
+        sprite.textureName = "tile_green";
+        sprite.layer = toInt(RenderLayer::Objects) - 1;  // Под объектами
+        sprite.visible = true;
+        sprite.color = sf::Color(255, 255, 0, 100);  // Полупрозрачный желтый
+
+        auto& collision = m_registry.emplace<CollisionComponent>(trigger);
+        collision.isSolid = false;
+        collision.isTrigger = true;
+        collision.layer = "trigger";
+        collision.setFromTileSize(3, 2);
+
+        collision.onCollisionEnter = [](entt::entity other) {
+            LOG_WARN("Entity {} ENTERED trigger zone!", static_cast<uint32_t>(other));
+        };
+
+        collision.onCollisionExit = [](entt::entity other) {
+            LOG_INFO("Entity {} LEFT trigger zone", static_cast<uint32_t>(other));
+        };
+
+        LOG_INFO("Created trigger zone at (5, 3) size 3x2");
+    }
+
+    LOG_INFO("Tile test scene created with {} entities (including collision test objects)", m_registry.storage<entt::entity>().size());
 }
 
 void GameState::drawDebugGrid(sf::RenderWindow& window) {
