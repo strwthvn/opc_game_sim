@@ -18,7 +18,11 @@ class ResourceManager;
  * Поддерживает слои отрисовки и сортировку.
  * Кеширует sf::Sprite объекты для оптимизации производительности.
  *
- * @note RenderSystem требует вызова setRenderTarget() перед использованием
+ * Использует двухэтапный рендеринг:
+ * 1. update() - подготовка данных (culling, сортировка, кеширование)
+ * 2. render() - отрисовка подготовленных спрайтов
+ *
+ * @note Требует вызова setViewBounds() перед update() для frustum culling
  */
 class RenderSystem : public ISystem {
 public:
@@ -29,29 +33,33 @@ public:
     explicit RenderSystem(ResourceManager* resourceManager);
 
     /**
-     * @brief Обновление системы (вызывает render)
+     * @brief Обновление системы (подготовка данных для рендеринга)
      *
-     * Реализация интерфейса ISystem. Вызывает render() с текущим render target.
+     * Реализация интерфейса ISystem. Подготавливает данные для рендеринга:
+     * - Собирает видимые сущности
+     * - Выполняет frustum culling
+     * - Сортирует по слоям
+     * - Обновляет кеш спрайтов и их параметры
      *
      * @param registry EnTT registry с сущностями
      * @param dt Время с последнего обновления (не используется)
-     * @warning Требует предварительного вызова setRenderTarget()
+     * @warning Требует предварительного вызова setViewBounds()
      */
     void update(entt::registry& registry, double dt) override;
 
     /**
-     * @brief Устанавливает целевое окно для рендеринга
-     * @param window Окно для отрисовки
+     * @brief Устанавливает границы видимой области для frustum culling
+     * @param viewBounds Прямоугольник видимой области в world coordinates
      * @note Должен быть вызван перед update()
      */
-    void setRenderTarget(sf::RenderWindow* window);
+    void setViewBounds(const sf::FloatRect& viewBounds);
 
     /**
-     * @brief Отрисовка всех сущностей
-     * @param registry EnTT registry с сущностями
+     * @brief Отрисовка подготовленных сущностей
      * @param window Окно для отрисовки
+     * @note Требует предварительного вызова update() для подготовки данных
      */
-    void render(entt::registry& registry, sf::RenderWindow& window);
+    void render(sf::RenderWindow& window);
 
     /**
      * @brief Очищает кеш спрайтов для конкретной сущности
@@ -73,8 +81,16 @@ public:
     const char* getName() const override { return "RenderSystem"; }
 
 private:
+    /**
+     * @brief Данные для рендеринга одной сущности
+     */
+    struct RenderData {
+        entt::entity entity;
+        int layer;
+    };
+
     ResourceManager* m_resourceManager;  ///< Менеджер ресурсов для текстур
-    sf::RenderWindow* m_renderTarget = nullptr;  ///< Целевое окно для рендеринга
+    sf::FloatRect m_viewBounds;          ///< Границы видимой области для frustum culling
     bool m_layersDirty = true;           ///< Флаг необходимости пересортировки слоев
 
     /**
@@ -82,6 +98,12 @@ private:
      * Ключ - entity ID, значение - кешированный спрайт
      */
     std::unordered_map<entt::entity, sf::Sprite> m_spriteCache;
+
+    /**
+     * @brief Очередь подготовленных сущностей для рендеринга
+     * Заполняется в update(), используется в render()
+     */
+    std::vector<RenderData> m_renderQueue;
 };
 
 } // namespace core

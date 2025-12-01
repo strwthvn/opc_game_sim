@@ -10,7 +10,7 @@
 namespace core {
 
 RenderSystem::RenderSystem(ResourceManager* resourceManager)
-    : m_resourceManager(resourceManager), m_renderTarget(nullptr) {
+    : m_resourceManager(resourceManager) {
     if (!m_resourceManager) {
         LOG_ERROR("RenderSystem created with null ResourceManager");
         throw std::runtime_error("RenderSystem requires valid ResourceManager");
@@ -18,38 +18,21 @@ RenderSystem::RenderSystem(ResourceManager* resourceManager)
     LOG_DEBUG("RenderSystem initialized");
 }
 
+void RenderSystem::setViewBounds(const sf::FloatRect& viewBounds) {
+    m_viewBounds = viewBounds;
+}
+
 void RenderSystem::update(entt::registry& registry, double dt) {
-    if (!m_renderTarget) {
-        LOG_ERROR("RenderSystem::update() called without render target. Call setRenderTarget() first.");
-        return;
-    }
-    render(registry, *m_renderTarget);
-}
+    // Очищаем очередь рендеринга от предыдущего кадра
+    m_renderQueue.clear();
 
-void RenderSystem::setRenderTarget(sf::RenderWindow* window) {
-    m_renderTarget = window;
-}
-
-void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
     // Получаем view всех сущностей с Transform и Sprite
     auto view = registry.view<TransformComponent, SpriteComponent>();
 
-    // Создаем вектор для сортировки по слоям
-    struct RenderData {
-        entt::entity entity;
-        const TransformComponent* transform;
-        const SpriteComponent* sprite;
-        int layer;
-    };
+    // Резервируем место для оптимизации
+    m_renderQueue.reserve(view.size_hint());
 
-    std::vector<RenderData> renderQueue;
-    renderQueue.reserve(view.size_hint());
-
-    // Получаем bounds камеры для frustum culling
-    sf::FloatRect viewBounds = sf::FloatRect(window.getView().getCenter() - window.getView().getSize() / 2.0f,
-                                              window.getView().getSize());
-
-    // Собираем все видимые спрайты
+    // Собираем все видимые спрайты и выполняем frustum culling
     for (auto entity : view) {
         const auto& transform = view.get<TransformComponent>(entity);
         const auto& sprite = view.get<SpriteComponent>(entity);
@@ -86,7 +69,7 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             );
 
             // Пропускаем объекты вне камеры
-            if (!viewBounds.findIntersection(spriteBounds).has_value()) {
+            if (!m_viewBounds.findIntersection(spriteBounds).has_value()) {
                 continue;
             }
         } catch (const std::exception& e) {
@@ -94,85 +77,84 @@ void RenderSystem::render(entt::registry& registry, sf::RenderWindow& window) {
             LOG_WARN("Frustum culling skipped for entity - texture not found: {}", sprite.textureName);
         }
 
-        renderQueue.push_back({entity, &transform, &sprite, sprite.layer});
+        // Добавляем в очередь рендеринга
+        m_renderQueue.push_back({entity, sprite.layer});
+
+        // Подготавливаем или обновляем спрайт в кеше
+        try {
+            const sf::Texture& texture = m_resourceManager->getTexture(sprite.textureName);
+
+            // Получаем или создаем спрайт из кеша
+            auto it = m_spriteCache.find(entity);
+            bool isNewSprite = (it == m_spriteCache.end());
+
+            if (isNewSprite) {
+                // Создаем новый спрайт и добавляем в кеш
+                auto [inserted_it, success] = m_spriteCache.emplace(entity, sf::Sprite(texture));
+                it = inserted_it;
+            }
+
+            sf::Sprite& cachedSprite = it->second;
+
+            // Обновляем текстуру (на случай если изменилась)
+            cachedSprite.setTexture(texture);
+
+            // Устанавливаем прямоугольник текстуры
+            if (sprite.textureRect.size.x > 0 && sprite.textureRect.size.y > 0) {
+                cachedSprite.setTextureRect(sprite.textureRect);
+            } else {
+                cachedSprite.setTextureRect(sf::IntRect(sf::Vector2i(0, 0), sf::Vector2i(texture.getSize())));
+            }
+
+            // Устанавливаем цвет модуляции
+            cachedSprite.setColor(sprite.color);
+
+            // Устанавливаем origin ТОЛЬКО при создании нового спрайта
+            if (isNewSprite) {
+                sf::FloatRect bounds = cachedSprite.getLocalBounds();
+                // Для вращения используем центр, иначе левый НИЖНИЙ угол
+                if (transform.rotation != 0.0f) {
+                    // Origin в центре для корректного вращения
+                    cachedSprite.setOrigin(bounds.size / 2.0f);
+                } else {
+                    // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
+                    cachedSprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
+                }
+            }
+
+            // Применяем трансформацию (SFML 3 uses Vector2f and sf::Angle)
+            cachedSprite.setPosition(sf::Vector2f(transform.x, transform.y));
+            cachedSprite.setRotation(sf::degrees(transform.rotation));
+            cachedSprite.setScale(sf::Vector2f(transform.scaleX, transform.scaleY));
+
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to prepare sprite for entity: {}", e.what());
+        }
     }
 
     // Сортируем по слоям только если они изменились
     if (m_layersDirty) {
-        std::stable_sort(renderQueue.begin(), renderQueue.end(),
+        std::stable_sort(m_renderQueue.begin(), m_renderQueue.end(),
                          [](const RenderData& a, const RenderData& b) {
                              return a.layer < b.layer;
                          });
         m_layersDirty = false;
     }
+}
 
-    // Отрисовываем все спрайты
-    for (const auto& data : renderQueue) {
-        const auto& transform = *data.transform;
-        const auto& spriteComp = *data.sprite;
-
-        // Пропускаем спрайты без текстуры
-        if (spriteComp.textureName.empty()) {
+void RenderSystem::render(sf::RenderWindow& window) {
+    // Отрисовываем все подготовленные спрайты из очереди
+    for (const auto& data : m_renderQueue) {
+        // Получаем спрайт из кеша
+        auto it = m_spriteCache.find(data.entity);
+        if (it == m_spriteCache.end()) {
+            // Спрайт должен был быть подготовлен в update()
+            LOG_WARN("Sprite not found in cache for entity during render - was update() called?");
             continue;
         }
 
-        try {
-            // Получаем текстуру из ResourceManager
-            const sf::Texture& texture = m_resourceManager->getTexture(spriteComp.textureName);
-
-            // Получаем или создаем спрайт из кеша системы
-            auto it = m_spriteCache.find(data.entity);
-            bool isNewSprite = (it == m_spriteCache.end());
-
-            if (isNewSprite) {
-                // Создаем новый спрайт и добавляем в кеш
-                auto [inserted_it, success] = m_spriteCache.emplace(data.entity, sf::Sprite(texture));
-                it = inserted_it;
-            }
-
-            sf::Sprite& sprite = it->second;
-
-            // Обновляем текстуру (на случай если изменилась)
-            sprite.setTexture(texture);
-
-            // Устанавливаем прямоугольник текстуры
-            // Если не указан явно, используем размер всей текстуры
-            if (spriteComp.textureRect.size.x > 0 && spriteComp.textureRect.size.y > 0) {
-                sprite.setTextureRect(spriteComp.textureRect);
-            } else {
-                // Для спрайтов без явного textureRect используем всю текстуру
-                sprite.setTextureRect(sf::IntRect(sf::Vector2i(0, 0), sf::Vector2i(texture.getSize())));
-            }
-
-            // Устанавливаем цвет модуляции
-            sprite.setColor(spriteComp.color);
-
-            // Устанавливаем origin ТОЛЬКО при создании нового спрайта
-            if (isNewSprite) {
-                sf::FloatRect bounds = sprite.getLocalBounds();
-                // Для вращения используем центр, иначе левый НИЖНИЙ угол
-                if (transform.rotation != 0.0f) {
-                    // Origin в центре для корректного вращения
-                    sprite.setOrigin(bounds.size / 2.0f);
-                } else {
-                    // Origin в левом НИЖНЕМ углу для интуитивного позиционирования
-                    // (объекты "стоят" на своей Y-координате)
-                    sprite.setOrigin(sf::Vector2f(0.0f, bounds.size.y));
-                }
-            }
-
-            // Применяем трансформацию (SFML 3 uses Vector2f and sf::Angle)
-            sprite.setPosition(sf::Vector2f(transform.x, transform.y));
-            sprite.setRotation(sf::degrees(transform.rotation));
-            sprite.setScale(sf::Vector2f(transform.scaleX, transform.scaleY));
-
-            // Отрисовываем
-            window.draw(sprite);
-
-        } catch (const std::exception& e) {
-            // Логируем ошибку, но продолжаем рендеринг других сущностей
-            LOG_ERROR("Failed to render entity: {}", e.what());
-        }
+        // Отрисовываем спрайт (все параметры уже установлены в update())
+        window.draw(it->second);
     }
 }
 

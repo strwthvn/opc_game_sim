@@ -20,9 +20,8 @@ class TilePositionSystem : public ISystem {
 public:
     /**
      * @brief Конструктор
-     * @param registry EnTT registry для инициализации observers
      */
-    explicit TilePositionSystem(entt::registry& registry);
+    TilePositionSystem();
 
     /**
      * @brief Обновление позиций всех тайловых объектов
@@ -67,21 +66,6 @@ private:
      * @param registry EnTT registry
      */
     void updateLayers(entt::registry& registry);
-
-    /**
-     * @brief Observer для отслеживания изменений TilePositionComponent
-     *
-     * Автоматически регистрирует сущности при изменении или добавлении
-     * TilePositionComponent, позволяя обновлять только измененные объекты.
-     */
-    entt::observer m_tilePositionObserver;
-
-    /**
-     * @brief Observer для отслеживания изменений layer в SpriteComponent
-     *
-     * Отслеживает изменения слоя для своевременного обновления Y-sorting.
-     */
-    entt::observer m_layerObserver;
 };
 
 } // namespace core

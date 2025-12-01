@@ -158,6 +158,15 @@ void GameState::update(double dt) {
         ));
     }
 
+    // Вычисляем bounds камеры для RenderSystem (frustum culling)
+    if (m_renderSystem) {
+        sf::FloatRect viewBounds = sf::FloatRect(
+            m_worldView.getCenter() - m_worldView.getSize() / 2.0f,
+            m_worldView.getSize()
+        );
+        m_renderSystem->setViewBounds(viewBounds);
+    }
+
     // Обновление ECS систем
     if (m_updateSystem) {
         m_updateSystem->update(m_registry, dt);
@@ -184,6 +193,11 @@ void GameState::update(double dt) {
 
     if (m_overlaySystem) {
         m_overlaySystem->update(m_registry);
+    }
+
+    // Обновление RenderSystem (подготовка данных для рендеринга)
+    if (m_renderSystem) {
+        m_renderSystem->update(m_registry, dt);
     }
 
     // TODO: Обновление физики
@@ -217,8 +231,9 @@ void GameState::render(sf::RenderWindow& window) {
     }
 
     // Рендеринг ECS entities (игровые объекты)
+    // Данные уже подготовлены в update(), просто рисуем
     if (m_renderSystem) {
-        m_renderSystem->render(m_registry, window);
+        m_renderSystem->render(window);
     }
 
     // Отладочная визуализация тайловой сетки
