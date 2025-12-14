@@ -35,7 +35,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'latest'
+        vcpkgGitCommitId: '0804e3b55b7e435c593707071052363fa876f170'
         vcpkgJsonGlob: 'vcpkg.json'
 
     - name: Install Linux dependencies
@@ -66,7 +66,7 @@ jobs:
       run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-${{ matrix.os }}
         path: |

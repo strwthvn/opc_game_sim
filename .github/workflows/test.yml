@@ -21,7 +21,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'latest'
+        vcpkgGitCommitId: '0804e3b55b7e435c593707071052363fa876f170'
         vcpkgJsonGlob: 'vcpkg.json'
 
     - name: Install dependencies
@@ -56,7 +56,7 @@ jobs:
       continue-on-error: true
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results
@@ -73,7 +73,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'latest'
+        vcpkgGitCommitId: '0804e3b55b7e435c593707071052363fa876f170'
         vcpkgJsonGlob: 'vcpkg.json'
 
     - name: Install dependencies
@@ -103,7 +103,7 @@ jobs:
       run: ./bin/IntegrationTests --reporter junit --out integration-tests.xml || true
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -120,7 +120,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 'latest'
+        vcpkgGitCommitId: '0804e3b55b7e435c593707071052363fa876f170'
         vcpkgJsonGlob: 'vcpkg.json'
 
     - name: Install dependencies
@@ -158,9 +158,9 @@ jobs:
         lcov --list coverage.info
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.info
+        files: ./coverage.info
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
