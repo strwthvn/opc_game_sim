@@ -2,11 +2,13 @@
 add_library(Simulation STATIC)
 
 target_sources(Simulation
+    PUBLIC
+        # Header-only компоненты
+        ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsComponents.h
     PRIVATE
         # Здесь будут добавлены исходные файлы
         # PhysicsSystem.cpp
         # SimulationWorld.cpp
-        # Components.cpp
 )
 
 target_include_directories(Simulation

@@ -88,7 +88,7 @@ ImGui интерфейс:
 
 **Расположение:** `include/core/Components.h`
 
-Компоненты - это данные без логики. Все 12 компонентов реализованы:
+Компоненты - это данные без логики. Базовые компоненты (12 в Core) реализованы, дополнительные физические компоненты (2 в Simulation) подготовлены для Фазы 2:
 
 #### Базовые компоненты
 
@@ -188,6 +188,61 @@ struct OverlayComponent {
     float localOffsetY;         // Локальное смещение Y
 };
 ```
+
+#### Компоненты физики
+
+**Расположение:** `include/simulation/PhysicsComponents.h`
+
+Компоненты для интеграции с Box2D физическим движком (подготовлены для Фазы 2):
+
+```cpp
+// Форма и свойства коллайдера для Box2D
+struct ColliderComponent {
+    enum class Shape { Box, Circle, Polygon };
+
+    Shape shape;                        // Тип формы коллайдера
+    sf::Vector2f size;                  // Размер для прямоугольника
+    float radius;                       // Радиус для круга
+    std::vector<sf::Vector2f> vertices; // Вершины для полигона
+    sf::Vector2f offset;                // Смещение от Transform
+
+    float density;                      // Плотность материала
+    float friction;                     // Коэффициент трения
+    float restitution;                  // Упругость (отскок)
+    bool isSensor;                      // Триггер без физики
+
+    // Утилиты для тайловой системы
+    void setFromTileSize(int w, int h, int tileSize = 32);
+    static ColliderComponent createBox(int w, int h, int tileSize = 32);
+};
+
+// Свойства твёрдого тела для Box2D
+struct RigidbodyComponent {
+    enum class BodyType { Static, Kinematic, Dynamic };
+
+    BodyType bodyType;                  // Тип тела
+    float mass;                         // Масса (кг)
+    float linearDamping;                // Затухание линейной скорости
+    float angularDamping;               // Затухание угловой скорости
+    float gravityScale;                 // Множитель гравитации
+
+    bool fixedRotation;                 // Запретить вращение
+    bool allowSleep;                    // Разрешить "засыпание"
+    bool isBullet;                      // Непрерывная детекция коллизий
+
+    sf::Vector2f linearVelocity;        // Начальная линейная скорость
+    float angularVelocity;              // Начальная угловая скорость
+
+    void* box2dBody;                    // Указатель на b2Body
+
+    // Утилиты для создания
+    static RigidbodyComponent createStatic();
+    static RigidbodyComponent createKinematic();
+    static RigidbodyComponent createDynamic(float mass = 1.0f);
+};
+```
+
+**Примечание:** В модуле Core также есть `CollisionComponent` для простых тайловых коллизий (AABB проверки). Используйте его для базовых проверок столкновений до интеграции Box2D.
 
 #### Константы системы
 
