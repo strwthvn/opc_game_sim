@@ -661,24 +661,24 @@
 <details>
 <summary>✅ Подзадачи</summary>
 
-- [ ] **3.1.1** Рефакторинг ResourceManager
-  - [ ] Добавить `std::future<void> preloadTexturesAsync(...)`
-  - [ ] Использовать `std::async` для загрузки в фоне
-  - [ ] Thread-safe доступ к `m_textures` (std::mutex)
+- [x] **3.1.1** Рефакторинг ResourceManager
+  - [x] Добавить `std::future<void> preloadTexturesAsync(...)`
+  - [x] Использовать `std::async` для загрузки в фоне
+  - [x] Thread-safe доступ к `m_textures` (std::mutex)
 
-- [ ] **3.1.2** Создать LoadingState
-  - [ ] Экран загрузки с прогресс-баром
-  - [ ] Анимированный индикатор
-  - [ ] Переход в GameState после завершения
+- [x] **3.1.2** Создать LoadingState
+  - [x] Экран загрузки с прогресс-баром
+  - [x] Анимированный индикатор
+  - [x] Переход в GameState после завершения
 
-- [ ] **3.1.3** Интеграция
-  - [ ] MenuState → "New Game" → LoadingState → GameState
-  - [ ] LoadingState запускает `preloadTexturesAsync()` в `onEnter()`
-  - [ ] Проверяет `std::future::wait_for()` каждый кадр
+- [x] **3.1.3** Интеграция
+  - [x] MenuState → "New Game" → LoadingState → GameState
+  - [x] LoadingState запускает `preloadTexturesAsync()` в `onEnter()`
+  - [x] Проверяет `std::future::wait_for()` каждый кадр
 
-- [ ] **3.1.4** Тестирование
-  - [ ] Проверить корректную загрузку всех текстур
-  - [ ] Убедиться, что UI отзывчив во время загрузки
+- [x] **3.1.4** Тестирование
+  - [x] Проверить корректную загрузку всех текстур
+  - [x] Убедиться, что UI отзывчив во время загрузки
 
 **Критерии приемки:**
 - ✅ Загрузка ресурсов не блокирует главный поток

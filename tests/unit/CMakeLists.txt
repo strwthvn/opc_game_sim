@@ -1,20 +1,31 @@
 # Unit tests
 if(Catch2_FOUND)
     add_executable(UnitTests
-        # test_main.cpp
-        # test_core.cpp
-        # test_simulation.cpp
+        test_tile_position_component.cpp
+        test_tile_position_system.cpp
+        test_fsm_system.cpp
+        test_collision_system.cpp
+        test_resource_manager.cpp
+        test_config.cpp
+        test_logger.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
-        Core
-        Simulation
         Rendering
-        Industrial
-        Scripting
-        Editor
-        UI
+        Core
         Catch2::Catch2WithMain
+        SFML::Graphics
+        SFML::System
+        SFML::Audio
+        EnTT::EnTT
+        spdlog::spdlog
+        yaml-cpp::yaml-cpp
+        PkgConfig::TMXLITE
+        zstd::libzstd_static
+    )
+
+    target_include_directories(UnitTests PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
     )
 
     include(CTest)

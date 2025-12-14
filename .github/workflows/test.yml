@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
 
 env:
   BUILD_TYPE: Debug
@@ -48,7 +48,12 @@ jobs:
 
     - name: Run unit tests
       working-directory: build
+      run: ctest --output-on-failure --verbose
+
+    - name: Run unit tests with JUnit output
+      working-directory: build
       run: ./bin/UnitTests --reporter junit --out unit-tests.xml || true
+      continue-on-error: true
 
     - name: Upload test results
       uses: actions/upload-artifact@v3

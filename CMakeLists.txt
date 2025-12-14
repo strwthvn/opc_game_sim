@@ -144,11 +144,11 @@ endif()
 # Копирование ресурсов в директорию сборки
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_BINARY_DIR})
 
-# Тесты (будут добавлены позже)
-# if(BUILD_TESTS)
-#     enable_testing()
-#     add_subdirectory(tests)
-# endif()
+# Тесты
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # Документация
 if(BUILD_DOCS)
