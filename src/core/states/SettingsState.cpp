@@ -1,6 +1,7 @@
 #include "core/states/SettingsState.h"
 #include "core/StateManager.h"
 #include "core/ResourceManager.h"
+#include "core/AudioManager.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -41,6 +42,13 @@ SettingsState::SettingsState(StateManager* stateManager)
 
 void SettingsState::onEnter() {
     LOG_INFO("Entering SettingsState");
+
+    // Загружаем текущие настройки громкости из AudioManager
+    auto* audioManager = getAudioManager();
+    if (audioManager) {
+        m_masterVolume = static_cast<int>(audioManager->getMasterVolume());
+        LOG_DEBUG("Loaded current master volume: {}", m_masterVolume);
+    }
 
     // Инициализируем UI View размером окна (1:1 пиксели)
     auto windowSize = getWindowSize();
@@ -332,12 +340,20 @@ void SettingsState::applySettings() {
     LOG_INFO("  VSync: {}", m_vsyncEnabled);
     LOG_INFO("  Master Volume: {}", m_masterVolume);
 
-    // TODO: Реальное применение настроек
+    // Применяем громкость через AudioManager
+    auto* audioManager = getAudioManager();
+    if (audioManager) {
+        audioManager->setMasterVolume(static_cast<float>(m_masterVolume));
+        LOG_INFO("Applied master volume: {}", m_masterVolume);
+    } else {
+        LOG_WARN("AudioManager not available, cannot apply volume settings");
+    }
+
+    // TODO: Применение остальных настроек
     // Для разрешения потребуется рестарт окна или пересоздание
     // VSync можно применить через window.setVerticalSyncEnabled()
-    // Громкость - когда будет AudioManager
 
-    LOG_WARN("Settings application not fully implemented yet - requires restart for resolution change");
+    LOG_WARN("Resolution/VSync application not implemented yet - requires restart");
     m_settingsChanged = false;
 }
 

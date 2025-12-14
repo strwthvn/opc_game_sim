@@ -14,6 +14,7 @@ namespace core {
 
 class InputManager;
 class ResourceManager;
+class AudioManager;
 class Window;
 
 /**
@@ -153,6 +154,18 @@ public:
      */
     ResourceManager* getResourceManager() const;
 
+    /**
+     * @brief Устанавливает менеджер аудио
+     * @param audioManager Указатель на менеджер аудио
+     */
+    void setAudioManager(AudioManager* audioManager);
+
+    /**
+     * @brief Возвращает менеджер аудио
+     * @return Указатель на менеджер аудио
+     */
+    AudioManager* getAudioManager() const;
+
 private:
 
     /**
@@ -178,6 +191,7 @@ private:
     bool m_isProcessingChanges;                        ///< Флаг обработки изменений
     InputManager* m_inputManager;                      ///< Указатель на менеджер ввода
     ResourceManager* m_resourceManager;                ///< Указатель на менеджер ресурсов
+    AudioManager* m_audioManager;                      ///< Указатель на менеджер аудио
     Window* m_window;                                  ///< Указатель на окно приложения
 };
 

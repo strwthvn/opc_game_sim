@@ -9,6 +9,7 @@ target_sources(Core
         PerformanceMetrics.cpp
         InputManager.cpp
         ResourceManager.cpp
+        AudioManager.cpp
         Components.cpp
         State.cpp
         StateManager.cpp
@@ -39,6 +40,7 @@ target_link_libraries(Core
         SFML::Graphics
         SFML::Window
         SFML::System
+        SFML::Audio
         spdlog::spdlog
         fmt::fmt
         EnTT::EnTT

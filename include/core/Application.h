@@ -5,6 +5,7 @@
 #include "PerformanceMetrics.h"
 #include "InputManager.h"
 #include "ResourceManager.h"
+#include "AudioManager.h"
 #include "StateManager.h"
 #include <memory>
 
@@ -100,14 +101,15 @@ private:
      */
     void render();
 
-    std::unique_ptr<Window> m_window;            ///< Окно приложения
-    std::unique_ptr<PerformanceMetrics> m_metrics;  ///< Метрики производительности
-    std::unique_ptr<InputManager> m_inputManager;   ///< Менеджер ввода
+    std::unique_ptr<Window> m_window;                   ///< Окно приложения
+    std::unique_ptr<PerformanceMetrics> m_metrics;      ///< Метрики производительности
+    std::unique_ptr<InputManager> m_inputManager;       ///< Менеджер ввода
     std::unique_ptr<ResourceManager> m_resourceManager; ///< Менеджер ресурсов
-    std::unique_ptr<StateManager> m_stateManager;   ///< Менеджер состояний
-    Config m_config;                             ///< Конфигурация
-    bool m_running;                              ///< Флаг работы приложения
-    double m_metricsTimer;                       ///< Таймер для периодического логирования метрик
+    std::unique_ptr<AudioManager> m_audioManager;       ///< Менеджер аудио
+    std::unique_ptr<StateManager> m_stateManager;       ///< Менеджер состояний
+    Config m_config;                                    ///< Конфигурация
+    bool m_running;                                     ///< Флаг работы приложения
+    double m_metricsTimer;                              ///< Таймер для периодического логирования метрик
 };
 
 } // namespace core

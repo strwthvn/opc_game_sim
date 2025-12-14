@@ -3,6 +3,7 @@
 #include "core/states/SettingsState.h"
 #include "core/StateManager.h"
 #include "core/ResourceManager.h"
+#include "core/AudioManager.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -20,6 +21,16 @@ MenuState::MenuState(StateManager* stateManager)
 
 void MenuState::onEnter() {
     LOG_INFO("Entering MenuState");
+
+    // Загружаем звук клика меню
+    auto* resourceManager = getResourceManager();
+    if (resourceManager && !resourceManager->hasSound("menu_click")) {
+        if (resourceManager->loadSound("menu_click", "assets/sounds/menu_click.wav")) {
+            LOG_INFO("Loaded menu click sound");
+        } else {
+            LOG_WARN("Failed to load menu click sound");
+        }
+    }
 
     // Инициализируем UI View размером окна (1:1 пиксели)
     auto windowSize = getWindowSize();
@@ -214,6 +225,12 @@ void MenuState::moveUp() {
     }
     updateMenuColors();
     LOG_DEBUG("Menu selection: {}", m_selectedItem);
+
+    // Воспроизводим звук навигации
+    auto* audioManager = getAudioManager();
+    if (audioManager) {
+        audioManager->playSound("menu_click", 80.0f);
+    }
 }
 
 void MenuState::moveDown() {
@@ -223,10 +240,22 @@ void MenuState::moveDown() {
     }
     updateMenuColors();
     LOG_DEBUG("Menu selection: {}", m_selectedItem);
+
+    // Воспроизводим звук навигации
+    auto* audioManager = getAudioManager();
+    if (audioManager) {
+        audioManager->playSound("menu_click", 80.0f);
+    }
 }
 
 void MenuState::activateSelected() {
     LOG_INFO("Menu item activated: {}", m_selectedItem);
+
+    // Воспроизводим звук подтверждения (чуть громче чем навигация)
+    auto* audioManager = getAudioManager();
+    if (audioManager) {
+        audioManager->playSound("menu_click", 100.0f);
+    }
 
     switch (static_cast<MenuItem>(m_selectedItem)) {
         case MenuItem::NewGame:

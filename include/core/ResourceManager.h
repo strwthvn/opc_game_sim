@@ -2,6 +2,7 @@
 
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -80,6 +81,22 @@ public:
     bool loadTexture(const std::string& path);
 
     /**
+     * @brief Получает звуковой буфер по имени, загружает если еще не загружен
+     * @param name Имя звука для идентификации
+     * @return Ссылка на звуковой буфер
+     * @throws std::runtime_error если буфер не удалось загрузить
+     */
+    const sf::SoundBuffer& getSound(const std::string& name);
+
+    /**
+     * @brief Загружает звуковой буфер из файла
+     * @param name Имя звука для идентификации
+     * @param path Путь к файлу звука
+     * @return true если успешно загружено
+     */
+    bool loadSound(const std::string& name, const std::string& path);
+
+    /**
      * @brief Загружает текстуру из SFML Image
      * @param name Имя текстуры для идентификации
      * @param image Изображение для загрузки
@@ -112,6 +129,18 @@ public:
                        std::function<void(float)> progressCallback = nullptr);
 
     /**
+     * @brief Предзагружает несколько звуков
+     *
+     * Полезно для экрана загрузки - загружает все звуки заранее.
+     *
+     * @param soundConfigs Вектор пар {имя, путь} для звуков
+     * @param progressCallback Опциональный callback для отслеживания прогресса (0.0-1.0)
+     * @return Количество успешно загруженных звуков
+     */
+    size_t preloadSounds(const std::vector<std::pair<std::string, std::string>>& soundConfigs,
+                        std::function<void(float)> progressCallback = nullptr);
+
+    /**
      * @brief Проверяет, загружен ли шрифт
      * @param name Имя шрифта
      * @return true если шрифт загружен
@@ -124,6 +153,13 @@ public:
      * @return true если текстура загружена
      */
     bool hasTexture(const std::string& name) const;
+
+    /**
+     * @brief Проверяет, загружен ли звук
+     * @param name Имя звука
+     * @return true если звук загружен
+     */
+    bool hasSound(const std::string& name) const;
 
     /**
      * @brief Выгружает отдельную текстуру
@@ -140,6 +176,13 @@ public:
     bool unloadFont(const std::string& name);
 
     /**
+     * @brief Выгружает отдельный звук
+     * @param name Имя звука
+     * @return true если звук был выгружен, false если не найден
+     */
+    bool unloadSound(const std::string& name);
+
+    /**
      * @brief Очищает все загруженные ресурсы
      */
     void clear();
@@ -154,6 +197,11 @@ public:
      */
     size_t getTextureCount() const { return m_textures.size(); }
 
+    /**
+     * @brief Возвращает количество загруженных звуков
+     */
+    size_t getSoundCount() const { return m_soundBuffers.size(); }
+
 private:
     /**
      * @brief Загружает системный шрифт по умолчанию
@@ -161,8 +209,9 @@ private:
      */
     std::string getSystemFontPath() const;
 
-    std::unordered_map<std::string, sf::Font> m_fonts;       ///< Кеш шрифтов
-    std::unordered_map<std::string, sf::Texture> m_textures; ///< Кеш текстур
+    std::unordered_map<std::string, sf::Font> m_fonts;          ///< Кеш шрифтов
+    std::unordered_map<std::string, sf::Texture> m_textures;    ///< Кеш текстур
+    std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers; ///< Кеш звуковых буферов
 };
 
 } // namespace core

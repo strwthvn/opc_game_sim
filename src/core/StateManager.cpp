@@ -9,6 +9,7 @@ StateManager::StateManager()
     : m_isProcessingChanges(false)
     , m_inputManager(nullptr)
     , m_resourceManager(nullptr)
+    , m_audioManager(nullptr)
     , m_window(nullptr) {
     LOG_DEBUG("StateManager created");
 }
@@ -227,6 +228,15 @@ void StateManager::setResourceManager(ResourceManager* resourceManager) {
 
 ResourceManager* StateManager::getResourceManager() const {
     return m_resourceManager;
+}
+
+void StateManager::setAudioManager(AudioManager* audioManager) {
+    m_audioManager = audioManager;
+    LOG_DEBUG("AudioManager set in StateManager");
+}
+
+AudioManager* StateManager::getAudioManager() const {
+    return m_audioManager;
 }
 
 } // namespace core

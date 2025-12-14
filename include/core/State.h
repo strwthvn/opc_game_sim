@@ -13,6 +13,7 @@ namespace core {
 class StateManager;     // Forward declaration
 class InputManager;     // Forward declaration
 class ResourceManager;  // Forward declaration
+class AudioManager;     // Forward declaration
 
 /**
  * @brief Базовый интерфейс для состояний приложения
@@ -119,6 +120,12 @@ protected:
      * @return Указатель на ResourceManager
      */
     ResourceManager* getResourceManager() const;
+
+    /**
+     * @brief Возвращает AudioManager для доступа к аудио системе
+     * @return Указатель на AudioManager
+     */
+    AudioManager* getAudioManager() const;
 };
 
 } // namespace core

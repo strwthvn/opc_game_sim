@@ -26,11 +26,13 @@ void InputManager::handleEvent(const sf::Event& event) {
     if (const auto* keyPressed = event.getIf<sf::Event::KeyPressed>()) {
         if (isKeyValid(keyPressed->code)) {
             m_keyStates[keyPressed->code] = true;
+            LOG_DEBUG("Key pressed: {}", static_cast<int>(keyPressed->code));
         }
     }
     else if (const auto* keyReleased = event.getIf<sf::Event::KeyReleased>()) {
         if (isKeyValid(keyReleased->code)) {
             m_keyStates[keyReleased->code] = false;
+            LOG_DEBUG("Key released: {}", static_cast<int>(keyReleased->code));
         }
     }
 

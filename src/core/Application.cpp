@@ -42,10 +42,15 @@ Application::Application(const Config& config)
     m_resourceManager = std::make_unique<ResourceManager>();
     LOG_INFO("ResourceManager initialized");
 
+    // Создаем менеджер аудио
+    m_audioManager = std::make_unique<AudioManager>(m_resourceManager.get());
+    LOG_INFO("AudioManager initialized");
+
     // Создаем менеджер состояний и устанавливаем начальное состояние
     m_stateManager = std::make_unique<StateManager>();
     m_stateManager->setInputManager(m_inputManager.get());
     m_stateManager->setResourceManager(m_resourceManager.get());
+    m_stateManager->setAudioManager(m_audioManager.get());
     m_stateManager->setWindow(m_window.get());
     m_stateManager->pushState(std::make_unique<MenuState>(m_stateManager.get()));
     m_stateManager->applyPendingChanges(); // Применяем начальное состояние сразу
@@ -146,6 +151,14 @@ void Application::processEvents() {
             m_stateManager->handleWindowResize(resized->size);
         }
 
+        // Обработка событий фокуса окна
+        if (event->is<sf::Event::FocusLost>()) {
+            LOG_WARN("Window focus LOST");
+        }
+        if (event->is<sf::Event::FocusGained>()) {
+            LOG_INFO("Window focus GAINED");
+        }
+
         // Передаем событие в InputManager для отслеживания состояний
         m_inputManager->handleEvent(*event);
 
@@ -155,6 +168,9 @@ void Application::processEvents() {
 }
 
 void Application::update(double dt) {
+    // Обновляем аудио систему
+    m_audioManager->update();
+
     // Обновляем текущее состояние
     m_stateManager->update(dt);
 }

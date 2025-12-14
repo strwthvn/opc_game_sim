@@ -196,11 +196,83 @@ bool ResourceManager::unloadFont(const std::string& name) {
     return false;
 }
 
+const sf::SoundBuffer& ResourceManager::getSound(const std::string& name) {
+    // Проверяем кеш
+    auto it = m_soundBuffers.find(name);
+    if (it != m_soundBuffers.end()) {
+        return it->second;
+    }
+
+    // Не найден в кеше
+    LOG_ERROR("Failed to get sound: {}", name);
+    throw std::runtime_error("Failed to get sound: " + name);
+}
+
+bool ResourceManager::loadSound(const std::string& name, const std::string& path) {
+    sf::SoundBuffer buffer;
+    if (!buffer.loadFromFile(path)) {
+        LOG_WARN("Failed to load sound from: {}", path);
+        return false;
+    }
+
+    m_soundBuffers[name] = std::move(buffer);
+    LOG_DEBUG("Sound loaded: {} from {}", name, path);
+    return true;
+}
+
+size_t ResourceManager::preloadSounds(const std::vector<std::pair<std::string, std::string>>& soundConfigs,
+                                      std::function<void(float)> progressCallback) {
+    if (soundConfigs.empty()) {
+        return 0;
+    }
+
+    size_t loaded = 0;
+    size_t total = soundConfigs.size();
+
+    LOG_INFO("Preloading {} sounds...", total);
+
+    for (size_t i = 0; i < total; ++i) {
+        const auto& [name, path] = soundConfigs[i];
+
+        // Пропускаем уже загруженные
+        if (hasSound(name)) {
+            ++loaded;
+        } else if (loadSound(name, path)) {
+            ++loaded;
+        }
+
+        // Уведомляем о прогрессе
+        if (progressCallback) {
+            float progress = static_cast<float>(i + 1) / static_cast<float>(total);
+            progressCallback(progress);
+        }
+    }
+
+    LOG_INFO("Preloaded {}/{} sounds", loaded, total);
+    return loaded;
+}
+
+bool ResourceManager::hasSound(const std::string& name) const {
+    return m_soundBuffers.find(name) != m_soundBuffers.end();
+}
+
+bool ResourceManager::unloadSound(const std::string& name) {
+    auto it = m_soundBuffers.find(name);
+    if (it != m_soundBuffers.end()) {
+        m_soundBuffers.erase(it);
+        LOG_DEBUG("Sound unloaded: {}", name);
+        return true;
+    }
+    LOG_WARN("Cannot unload sound '{}': not found", name);
+    return false;
+}
+
 void ResourceManager::clear() {
-    LOG_DEBUG("Clearing all resources: {} fonts, {} textures",
-              m_fonts.size(), m_textures.size());
+    LOG_DEBUG("Clearing all resources: {} fonts, {} textures, {} sounds",
+              m_fonts.size(), m_textures.size(), m_soundBuffers.size());
     m_fonts.clear();
     m_textures.clear();
+    m_soundBuffers.clear();
 }
 
 std::string ResourceManager::getSystemFontPath() const {

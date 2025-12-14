@@ -112,6 +112,10 @@ void GameState::update(double dt) {
 
     // Обработка ввода через InputManager
     auto* input = getInputManager();
+    if (!input) {
+        LOG_WARN("InputManager not available in GameState::update()");
+        return;
+    }
     if (input) {
         // Пауза (только что нажата клавиша)
         if (input->isKeyJustPressed(sf::Keyboard::Key::Escape) ||
@@ -135,20 +139,25 @@ void GameState::update(double dt) {
 
         if (input->isKeyPressed(sf::Keyboard::Key::W) || input->isKeyPressed(sf::Keyboard::Key::Up)) {
             cameraMove.y -= moveSpeed;
+            LOG_DEBUG("Camera moving UP (W/Up pressed)");
         }
         if (input->isKeyPressed(sf::Keyboard::Key::S) || input->isKeyPressed(sf::Keyboard::Key::Down)) {
             cameraMove.y += moveSpeed;
+            LOG_DEBUG("Camera moving DOWN (S/Down pressed)");
         }
         if (input->isKeyPressed(sf::Keyboard::Key::A) || input->isKeyPressed(sf::Keyboard::Key::Left)) {
             cameraMove.x -= moveSpeed;
+            LOG_DEBUG("Camera moving LEFT (A/Left pressed)");
         }
         if (input->isKeyPressed(sf::Keyboard::Key::D) || input->isKeyPressed(sf::Keyboard::Key::Right)) {
             cameraMove.x += moveSpeed;
+            LOG_DEBUG("Camera moving RIGHT (D/Right pressed)");
         }
 
         // Применяем перемещение камеры
         if (cameraMove.x != 0.0f || cameraMove.y != 0.0f) {
             m_worldView.move(cameraMove);
+            LOG_DEBUG("Camera moved by ({:.2f}, {:.2f})", cameraMove.x, cameraMove.y);
         }
 
         // Применяем зум (через zoom() изменяется размер view)

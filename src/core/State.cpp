@@ -31,4 +31,11 @@ ResourceManager* State::getResourceManager() const {
     return nullptr;
 }
 
+AudioManager* State::getAudioManager() const {
+    if (m_stateManager) {
+        return m_stateManager->getAudioManager();
+    }
+    return nullptr;
+}
+
 } // namespace core
