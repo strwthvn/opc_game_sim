@@ -1,6 +1,7 @@
 #include "core/systems/CollisionSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
+#include "core/EventBus.h"
 
 namespace core {
 
@@ -81,6 +82,19 @@ void CollisionSystem::handleCollision(entt::registry& registry, entt::entity ent
         return;
     }
 
+    // Получаем трансформы для вычисления точки контакта
+    const auto* transformA = registry.try_get<TransformComponent>(entityA);
+    const auto* transformB = registry.try_get<TransformComponent>(entityB);
+
+    // Вычисляем точку контакта (центр между двумя объектами)
+    sf::Vector2f contactPoint(0.0f, 0.0f);
+    if (transformA && transformB) {
+        contactPoint = sf::Vector2f(
+            (transformA->x + transformB->x) * 0.5f,
+            (transformA->y + transformB->y) * 0.5f
+        );
+    }
+
     // Если это новая коллизия, вызываем onCollisionEnter
     if (isNewCollision) {
         if (collisionA->onCollisionEnter) {
@@ -91,6 +105,10 @@ void CollisionSystem::handleCollision(entt::registry& registry, entt::entity ent
         }
 
         LOG_TRACE("Collision ENTER: entity {} <-> entity {}", static_cast<uint32_t>(entityA), static_cast<uint32_t>(entityB));
+
+        // Публикуем событие коллизии
+        CollisionEvent event(entityA, entityB, CollisionEvent::Type::Enter, contactPoint);
+        EventBus::getInstance().publish(event);
     }
     // Иначе вызываем onCollisionStay (продолжающаяся коллизия)
     else {
@@ -100,6 +118,10 @@ void CollisionSystem::handleCollision(entt::registry& registry, entt::entity ent
         if (collisionB->onCollisionStay) {
             collisionB->onCollisionStay(entityA);
         }
+
+        // Публикуем событие продолжения коллизии
+        CollisionEvent event(entityA, entityB, CollisionEvent::Type::Stay, contactPoint);
+        EventBus::getInstance().publish(event);
     }
 }
 
@@ -117,6 +139,10 @@ void CollisionSystem::handleCollisionExit(entt::registry& registry, const Entity
     }
 
     LOG_TRACE("Collision EXIT: entity {} <-> entity {}", static_cast<uint32_t>(pair.first), static_cast<uint32_t>(pair.second));
+
+    // Публикуем событие выхода из коллизии
+    CollisionEvent event(pair.first, pair.second, CollisionEvent::Type::Exit);
+    EventBus::getInstance().publish(event);
 }
 
 } // namespace core

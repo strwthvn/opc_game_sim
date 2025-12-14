@@ -1,9 +1,10 @@
 #include "core/Components.h"
 #include "core/Logger.h"
+#include "core/EventBus.h"
 
 namespace core {
 
-void EntityStateComponent::setState(const std::string& newState) {
+void EntityStateComponent::setState(const std::string& newState, entt::entity entity) {
     // Игнорируем, если пытаемся установить то же состояние
     if (currentState == newState) {
         return;
@@ -35,6 +36,12 @@ void EntityStateComponent::setState(const std::string& newState) {
     }
 
     LOG_TRACE("EntityStateComponent: {} -> {}", previousState.empty() ? "none" : previousState, currentState);
+
+    // Публикуем событие изменения состояния (если передана сущность)
+    if (entity != entt::null) {
+        StateChangedEvent event(entity, previousState, currentState);
+        EventBus::getInstance().publish(event);
+    }
 }
 
 } // namespace core

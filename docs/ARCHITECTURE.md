@@ -603,22 +603,336 @@ private:
 
 ## Система событий
 
-**Текущий статус:** Планируется для будущих фаз
+### EventBus ✅ РЕАЛИЗОВАНО
 
-Будет использоваться `boost::signals2` для развязки модулей:
+**Расположение:** `include/core/EventBus.h`, `src/core/EventBus.cpp`
+
+EventBus - централизованная система событий для развязки модулей. Использует `boost::signals2` для потокобезопасной доставки событий.
+
+#### Архитектура EventBus
 
 ```cpp
-// Определение сигнала
-boost::signals2::signal<void(float)> onSensorValueChanged;
+class EventBus {
+public:
+    static EventBus& getInstance();  // Singleton
 
-// Подписка
-onSensorValueChanged.connect([](float value) {
-    LOG_INFO("Sensor value: {}", value);
-});
+    // Подписка на событие (возвращает connection для управления подпиской)
+    template<typename T>
+    Connection subscribe(EventCallback<T> callback);
 
-// Генерация события
-onSensorValueChanged(25.5f);
+    // Публикация события (все подписчики будут уведомлены)
+    template<typename T>
+    void publish(const T& event);
+
+    void clear();  // Очистить все подписки
+    size_t getEventTypeCount() const;
+
+private:
+    std::unordered_map<std::type_index, std::unique_ptr<ISignalBase>> m_signals;
+};
 ```
+
+**Особенности:**
+- **Потокобезопасность**: boost::signals2 обеспечивает thread-safe операции
+- **Типобезопасность**: Используются шаблоны C++ для статической типизации
+- **RAII подписки**: Connection автоматически отписывается при уничтожении
+- **Singleton паттерн**: Глобальный доступ к EventBus из любой части кода
+
+#### Базовые типы событий
+
+##### 1. CollisionEvent
+
+Публикуется CollisionSystem при обнаружении столкновений:
+
+```cpp
+struct CollisionEvent : public Event {
+    enum class Type { Enter, Stay, Exit };
+
+    entt::entity entityA;       // Первая сущность
+    entt::entity entityB;       // Вторая сущность
+    Type type;                  // Тип события (Enter/Stay/Exit)
+    sf::Vector2f contactPoint;  // Точка контакта (центр пересечения AABB)
+};
+```
+
+**Использование:**
+
+```cpp
+// Подписка на события коллизии
+auto connection = EventBus::getInstance().subscribe<CollisionEvent>(
+    [](const CollisionEvent& evt) {
+        if (evt.type == CollisionEvent::Type::Enter) {
+            LOG_INFO("Collision: {} <-> {}",
+                static_cast<uint32_t>(evt.entityA),
+                static_cast<uint32_t>(evt.entityB));
+
+            // Воспроизвести звук столкновения
+            AudioManager::getInstance().playSound("collision.wav");
+        }
+    }
+);
+```
+
+##### 2. StateChangedEvent
+
+Публикуется при переходе между состояниями FSM:
+
+```cpp
+struct StateChangedEvent : public Event {
+    entt::entity entity;           // Сущность, изменившая состояние
+    std::string previousState;     // Предыдущее состояние
+    std::string newState;          // Новое состояние
+};
+```
+
+**Использование:**
+
+```cpp
+// Подписка на изменения состояния
+auto connection = EventBus::getInstance().subscribe<StateChangedEvent>(
+    [](const StateChangedEvent& evt) {
+        LOG_INFO("Entity {} changed state: '{}' -> '{}'",
+            static_cast<uint32_t>(evt.entity),
+            evt.previousState,
+            evt.newState);
+
+        // Обработка критических состояний
+        if (evt.newState == "error") {
+            LOG_WARN("Entity entered ERROR state!");
+        }
+    }
+);
+```
+
+##### 3. EntityCreatedEvent / EntityDestroyedEvent
+
+Публикуются при создании/уничтожении сущностей:
+
+```cpp
+struct EntityCreatedEvent : public Event {
+    entt::entity entity;  // Созданная сущность
+};
+
+struct EntityDestroyedEvent : public Event {
+    entt::entity entity;  // Уничтожаемая сущность
+};
+```
+
+##### 4. InputEvent
+
+Публикуется InputManager при обработке пользовательского ввода (планируется):
+
+```cpp
+struct InputEvent : public Event {
+    enum class Type {
+        KeyPressed, KeyReleased,
+        MousePressed, MouseReleased, MouseMoved
+    };
+
+    Type type;
+    int keyCode;                  // Для Key* событий
+    int mouseButton;              // Для Mouse* событий
+    sf::Vector2f mousePosition;   // Позиция мыши
+};
+```
+
+#### Примеры использования
+
+##### Пример 1: Воспроизведение звука при коллизии
+
+```cpp
+class CollisionSoundHandler {
+public:
+    explicit CollisionSoundHandler(AudioManager& audioManager)
+        : m_audioManager(audioManager) {
+
+        // Подписываемся на события коллизии
+        m_connection = EventBus::getInstance().subscribe<CollisionEvent>(
+            [this](const CollisionEvent& evt) {
+                if (evt.type == CollisionEvent::Type::Enter) {
+                    m_audioManager.playSound("collision.wav");
+                }
+            }
+        );
+    }
+
+    ~CollisionSoundHandler() {
+        // Connection автоматически отписывается
+    }
+
+private:
+    AudioManager& m_audioManager;
+    EventBus::Connection m_connection;
+};
+```
+
+##### Пример 2: Множественные подписчики
+
+```cpp
+// Подписчик 1: Воспроизведение звука
+auto conn1 = EventBus::getInstance().subscribe<CollisionEvent>(
+    [](const CollisionEvent& evt) {
+        AudioManager::getInstance().playSound("collision.wav");
+    }
+);
+
+// Подписчик 2: Создание визуального эффекта
+auto conn2 = EventBus::getInstance().subscribe<CollisionEvent>(
+    [](const CollisionEvent& evt) {
+        ParticleSystem::spawnEffect(evt.contactPoint, "explosion");
+    }
+);
+
+// Подписчик 3: Учет статистики
+auto conn3 = EventBus::getInstance().subscribe<CollisionEvent>(
+    [](const CollisionEvent& evt) {
+        Statistics::incrementCollisionCount();
+    }
+);
+
+// Публикация события уведомит ВСЕ подписчики
+CollisionEvent event(entityA, entityB, CollisionEvent::Type::Enter, contactPoint);
+EventBus::getInstance().publish(event);
+```
+
+##### Пример 3: Условная обработка событий
+
+```cpp
+// Обрабатываем только коллизии с игроком
+auto connection = EventBus::getInstance().subscribe<CollisionEvent>(
+    [&registry](const CollisionEvent& evt) {
+        auto* tagA = registry.try_get<TagComponent>(evt.entityA);
+        auto* tagB = registry.try_get<TagComponent>(evt.entityB);
+
+        bool isPlayerCollision = (tagA && tagA->tag == "player") ||
+                                 (tagB && tagB->tag == "player");
+
+        if (isPlayerCollision && evt.type == CollisionEvent::Type::Enter) {
+            LOG_INFO("Player collision detected!");
+            // Обработка урона, подбора предметов и т.д.
+        }
+    }
+);
+```
+
+##### Пример 4: Управление подписками
+
+```cpp
+// Создание подписки
+auto connection = EventBus::getInstance().subscribe<CollisionEvent>(
+    [](const CollisionEvent& evt) {
+        LOG_INFO("Collision detected");
+    }
+);
+
+// Временное отключение подписки
+connection.disconnect();
+
+// Проверка активности подписки
+if (connection.connected()) {
+    LOG_INFO("Still subscribed");
+}
+
+// Connection автоматически отписывается при выходе из scope
+// Явная отписка не требуется благодаря RAII
+```
+
+#### Интеграция с системами
+
+##### CollisionSystem
+
+CollisionSystem автоматически публикует CollisionEvent при обнаружении столкновений:
+
+```cpp
+// В CollisionSystem::handleCollision()
+if (isNewCollision) {
+    // Вызываем коллбеки
+    if (collisionA->onCollisionEnter) {
+        collisionA->onCollisionEnter(entityB);
+    }
+
+    // Публикуем событие
+    CollisionEvent event(entityA, entityB, CollisionEvent::Type::Enter, contactPoint);
+    EventBus::getInstance().publish(event);
+}
+```
+
+##### EntityStateComponent
+
+При переходе между состояниями публикуется StateChangedEvent:
+
+```cpp
+// В EntityStateComponent::setState()
+void EntityStateComponent::setState(const std::string& newState, entt::entity entity) {
+    // ... вызов onExit, обновление состояния, вызов onEnter ...
+
+    // Публикация события изменения состояния
+    if (entity != entt::null) {
+        StateChangedEvent event(entity, previousState, currentState);
+        EventBus::getInstance().publish(event);
+    }
+}
+```
+
+#### Создание пользовательских событий
+
+Для создания собственного типа события:
+
+1. Наследуйтесь от `Event`:
+
+```cpp
+struct CustomEvent : public Event {
+    int customData;
+    std::string message;
+
+    CustomEvent(int data, const std::string& msg)
+        : customData(data), message(msg) {}
+
+    const char* getTypeName() const override { return "CustomEvent"; }
+};
+```
+
+2. Подпишитесь на событие:
+
+```cpp
+auto connection = EventBus::getInstance().subscribe<CustomEvent>(
+    [](const CustomEvent& evt) {
+        LOG_INFO("Custom event: {} - {}", evt.customData, evt.message);
+    }
+);
+```
+
+3. Публикуйте событие:
+
+```cpp
+CustomEvent event(42, "Hello EventBus!");
+EventBus::getInstance().publish(event);
+```
+
+#### Преимущества EventBus
+
+1. **Развязка модулей**: Модули не зависят друг от друга напрямую
+2. **Расширяемость**: Легко добавлять новые обработчики событий
+3. **Потокобезопасность**: boost::signals2 обеспечивает thread-safety
+4. **Типобезопасность**: Компилятор проверяет типы событий
+5. **Удобство**: RAII для управления подписками, нет ручной отписки
+6. **Производительность**: Эффективная доставка событий через std::function
+
+#### Примеры использования в проекте
+
+См. `examples/EventBusExample.cpp` для полных примеров:
+- Воспроизведение звука при коллизии
+- Множественные подписчики на одно событие
+- Условная обработка событий
+- Управление подписками и временем жизни
+
+#### Будущие расширения
+
+**Планируется для будущих фаз:**
+- Публикация InputEvent из InputManager
+- EntityCreatedEvent/EntityDestroyedEvent из ECS
+- Приоритеты для обработчиков событий
+- Асинхронная доставка событий для межпоточной коммуникации
 
 ## Управление ресурсами
 

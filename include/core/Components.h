@@ -352,10 +352,12 @@ struct EntityStateComponent {
      *
      * Вызывает onExit для текущего состояния и onEnter для нового.
      * Сбрасывает timeInState в 0.
+     * Публикует StateChangedEvent через EventBus (если entity != entt::null).
      *
      * @param newState Новое состояние
+     * @param entity Сущность, которой принадлежит этот компонент (для публикации события)
      */
-    void setState(const std::string& newState);
+    void setState(const std::string& newState, entt::entity entity = entt::null);
 
     /**
      * @brief Проверить, находится ли сущность в указанном состоянии

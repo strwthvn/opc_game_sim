@@ -11,6 +11,7 @@ target_sources(Core
         ResourceManager.cpp
         AudioManager.cpp
         Components.cpp
+        EventBus.cpp
         State.cpp
         StateManager.cpp
         states/MenuState.cpp
@@ -44,6 +45,7 @@ target_link_libraries(Core
         spdlog::spdlog
         fmt::fmt
         EnTT::EnTT
+        Boost::headers
     PRIVATE
 )
 
