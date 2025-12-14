@@ -14,6 +14,7 @@ class RenderSystem;
 class UpdateSystem;
 class LifetimeSystem;
 class CollisionSystem;
+class FSMSystem;
 class TilePositionSystem;
 class AnimationSystem;
 class OverlaySystem;
@@ -85,6 +86,7 @@ private:
     std::unique_ptr<UpdateSystem> m_updateSystem;  ///< Система обновления
     std::unique_ptr<LifetimeSystem> m_lifetimeSystem;  ///< Система времени жизни
     std::unique_ptr<CollisionSystem> m_collisionSystem;  ///< Система коллизий (AABB)
+    std::unique_ptr<FSMSystem> m_fsmSystem;        ///< Система конечных автоматов (FSM)
 
     // Tile System (Milestone 1.3)
     std::unique_ptr<TilePositionSystem> m_tilePositionSystem;  ///< Система синхронизации тайловых позиций

@@ -9,6 +9,7 @@ target_sources(Core
         PerformanceMetrics.cpp
         InputManager.cpp
         ResourceManager.cpp
+        Components.cpp
         State.cpp
         StateManager.cpp
         states/MenuState.cpp
@@ -19,6 +20,7 @@ target_sources(Core
         systems/UpdateSystem.cpp
         systems/LifetimeSystem.cpp
         systems/CollisionSystem.cpp
+        systems/FSMSystem.cpp
         systems/TilePositionSystem.cpp
         systems/AnimationSystem.cpp
         systems/OverlaySystem.cpp

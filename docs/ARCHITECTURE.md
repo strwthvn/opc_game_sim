@@ -17,7 +17,7 @@ OPC Game Simulator построен на модульной архитектур
 - ✅ Система логирования (spdlog с ротацией файлов)
 - ✅ Система ввода (InputManager)
 - ✅ Метрики производительности (PerformanceMetrics)
-- ✅ ECS архитектура (EnTT с 12 компонентами, 7 системами)
+- ✅ ECS архитектура (EnTT с 13 компонентами, 9 системами)
 
 **Реализованные состояния:**
 - MenuState - главное меню
@@ -189,6 +189,66 @@ struct OverlayComponent {
 };
 ```
 
+#### Компонент конечного автомата (FSM)
+
+```cpp
+// Компонент состояния для конечных автоматов
+struct EntityStateComponent {
+    std::string currentState;   // Текущее состояние ("idle", "running", "error")
+    std::string previousState;  // Предыдущее состояние
+    float timeInState;          // Время в текущем состоянии (секунды)
+
+    // Коллбеки при входе/выходе из состояний
+    std::unordered_map<std::string, std::function<void()>> onEnterCallbacks;
+    std::unordered_map<std::string, std::function<void()>> onExitCallbacks;
+
+    // Методы
+    void setState(const std::string& newState);  // Сменить состояние (вызывает коллбеки)
+    bool isInState(const std::string& state) const;
+    void registerOnEnter(const std::string& state, std::function<void()> callback);
+    void registerOnExit(const std::string& state, std::function<void()> callback);
+};
+```
+
+**Использование FSM:**
+
+EntityStateComponent позволяет реализовать поведение промышленных объектов через конечные автоматы. Например, лампа может иметь состояния: `"off"` → `"on"` → `"broken"`.
+
+FSMSystem автоматически обновляет `timeInState` каждый кадр. Переходы между состояниями выполняются вызовом `setState()`, который:
+1. Вызывает `onExit` для текущего состояния
+2. Обновляет `currentState` и `previousState`
+3. Сбрасывает `timeInState` в 0
+4. Вызывает `onEnter` для нового состояния
+
+Пример создания FSM сущности:
+
+```cpp
+auto entity = registry.create();
+auto& fsm = registry.emplace<EntityStateComponent>(entity, "idle");
+
+// Регистрируем коллбеки для состояний
+fsm.registerOnEnter("running", [&registry, entity]() {
+    // Изменить цвет индикатора на зеленый
+    if (auto* sprite = registry.try_get<SpriteComponent>(entity)) {
+        sprite->color = sf::Color::Green;
+    }
+    LOG_INFO("Machine started running");
+});
+
+fsm.registerOnEnter("error", [&registry, entity]() {
+    // Изменить цвет индикатора на красный
+    if (auto* sprite = registry.try_get<SpriteComponent>(entity)) {
+        sprite->color = sf::Color::Red;
+    }
+    LOG_ERROR("Machine entered error state!");
+});
+
+// Переход между состояниями
+if (fsm.isInState("idle") && fsm.timeInState > 5.0f) {
+    fsm.setState("running");  // Автоматически вызовет onEnter("running")
+}
+```
+
 #### Компоненты физики
 
 **Расположение:** `include/simulation/PhysicsComponents.h`
@@ -305,7 +365,70 @@ private:
 };
 ```
 
-#### 3. TilePositionSystem (Приоритет: 200)
+#### 3. CollisionSystem (Приоритет: 100)
+
+Обработка коллизий между сущностями:
+
+```cpp
+class CollisionSystem : public ISystem {
+public:
+    void update(entt::registry& registry, float deltaTime) override;
+    int getPriority() const override { return 100; }
+
+private:
+    std::set<EntityPair> m_previousCollisions;
+    bool checkAABB(const sf::FloatRect& a, const sf::FloatRect& b) const;
+    void handleCollision(entt::registry& registry, entt::entity a, entt::entity b, bool isNew);
+    void handleCollisionExit(entt::registry& registry, const EntityPair& pair);
+};
+```
+
+**Особенности:**
+- Использует AABB (Axis-Aligned Bounding Box) для проверки столкновений
+- Поддерживает solid коллизии (блокирующие движение) и trigger коллизии (только детекция)
+- Отслеживает активные коллизии между кадрами для вызова onCollisionEnter/Stay/Exit
+- Вызывает коллбеки из CollisionComponent при событиях коллизий
+- Использует слои коллизий для фильтрации взаимодействий
+
+#### 4. FSMSystem (Приоритет: 150)
+
+Система управления конечными автоматами (Finite State Machine):
+
+```cpp
+class FSMSystem : public ISystem {
+public:
+    void update(entt::registry& registry, float deltaTime) override;
+    int getPriority() const override { return 150; }
+};
+```
+
+**Особенности:**
+- Обновляет `timeInState` для всех сущностей с EntityStateComponent
+- Работает совместно с EntityStateComponent для реализации state machines
+- Не управляет переходами между состояниями (это делается вручную через `setState()`)
+- Используется для реализации поведения промышленных объектов (например: конвейер idle → running → error)
+
+**Пример использования FSM:**
+
+```cpp
+// В системе обновления или игровой логике
+auto view = registry.view<EntityStateComponent, NameComponent>();
+for (auto entity : view) {
+    auto& fsm = view.get<EntityStateComponent>(entity);
+
+    // Переход из idle в running после 3 секунд
+    if (fsm.isInState("idle") && fsm.timeInState > 3.0f) {
+        fsm.setState("running");  // Вызовет onEnter("running")
+    }
+
+    // Переход в error при определенных условиях
+    if (fsm.isInState("running") && someErrorCondition) {
+        fsm.setState("error");  // Вызовет onExit("running") и onEnter("error")
+    }
+}
+```
+
+#### 5. TilePositionSystem (Приоритет: 200)
 
 Синхронизация тайловых координат с пиксельными:
 
@@ -332,7 +455,7 @@ private:
 - Конвертирует тайловые координаты: `x = tileX * 32`, `y = (tileY + height) * 32`
 - Обновляет слой для Y-sorting: `layer = Objects + tileY`
 
-#### 4. AnimationSystem (Приоритет: 300)
+#### 6. AnimationSystem (Приоритет: 300)
 
 Покадровая анимация спрайтов:
 
@@ -348,7 +471,7 @@ private:
 };
 ```
 
-#### 5. OverlaySystem (Приоритет: 400)
+#### 7. OverlaySystem (Приоритет: 400)
 
 Синхронизация оверлеев с родительскими объектами:
 
@@ -363,7 +486,7 @@ private:
 };
 ```
 
-#### 6. RenderSystem (Приоритет: 500)
+#### 8. RenderSystem (Приоритет: 500)
 
 Рендеринг всех видимых спрайтов:
 
@@ -392,7 +515,7 @@ private:
 - Устанавливает origin спрайта в нижний левый угол для не вращающихся объектов
 - Устанавливает origin в центр для вращающихся объектов
 
-#### 7. TileMapSystem (Модуль Rendering)
+#### 9. TileMapSystem (Модуль Rendering)
 
 Загрузка и рендеринг TMX карт:
 

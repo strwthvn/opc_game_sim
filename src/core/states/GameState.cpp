@@ -8,6 +8,7 @@
 #include "core/systems/UpdateSystem.h"
 #include "core/systems/LifetimeSystem.h"
 #include "core/systems/CollisionSystem.h"
+#include "core/systems/FSMSystem.h"
 #include "core/systems/TilePositionSystem.h"
 #include "core/systems/AnimationSystem.h"
 #include "core/systems/OverlaySystem.h"
@@ -183,6 +184,32 @@ void GameState::update(double dt) {
         m_collisionSystem->update(m_registry, dt);
     }
 
+    // Обновление системы FSM (приоритет 150)
+    if (m_fsmSystem) {
+        m_fsmSystem->update(m_registry, dt);
+    }
+
+    // === ДЕМОНСТРАЦИЯ FSM: Автоматическое переключение состояний лампы ===
+    // Переключаем состояние лампы на основе времени в текущем состоянии
+    auto fsmView = m_registry.view<EntityStateComponent, NameComponent>();
+    for (auto entity : fsmView) {
+        auto& fsm = fsmView.get<EntityStateComponent>(entity);
+        auto& name = fsmView.get<NameComponent>(entity);
+
+        // Обрабатываем только нашу тестовую лампу
+        if (name.name == "Lamp_FSM") {
+            // off → on после 3 секунд
+            if (fsm.isInState("off") && fsm.timeInState > 3.0f) {
+                fsm.setState("on");
+            }
+            // on → broken после 3 секунд работы
+            else if (fsm.isInState("on") && fsm.timeInState > 3.0f) {
+                fsm.setState("broken");
+            }
+            // broken - конечное состояние, лампа "сломана"
+        }
+    }
+
     // Обновление Tile Systems (Milestone 1.3)
     if (m_tilePositionSystem) {
         m_tilePositionSystem->update(m_registry);
@@ -290,6 +317,7 @@ void GameState::initializeScene() {
     m_updateSystem = std::make_unique<UpdateSystem>();
     m_lifetimeSystem = std::make_unique<LifetimeSystem>();
     m_collisionSystem = std::make_unique<CollisionSystem>();
+    m_fsmSystem = std::make_unique<FSMSystem>();
 
     // Инициализация Tile Systems (Milestone 1.3)
     LOG_INFO("Initializing Tile Systems (Milestone 1.3)");
@@ -695,7 +723,57 @@ void GameState::createTileTestScene() {
         LOG_INFO("Created trigger zone at (5, 3) size 3x2");
     }
 
-    LOG_INFO("Tile test scene created with {} entities (including collision test objects)", m_registry.storage<entt::entity>().size());
+    // === 7. Тестирование FSM (Задача 2.2) - Лампа с состояниями: off → on → broken ===
+    LOG_INFO("Creating FSM test entity (Lamp)");
+    {
+        auto lamp = m_registry.create();
+        m_registry.emplace<NameComponent>(lamp, "Lamp_FSM");
+        m_registry.emplace<TilePositionComponent>(lamp, 10, 6, 1, 1);
+        m_registry.emplace<TransformComponent>(lamp);
+
+        auto& sprite = m_registry.emplace<SpriteComponent>(lamp);
+        sprite.textureName = "tile_brown";
+        sprite.layer = toInt(RenderLayer::Objects);
+        sprite.visible = true;
+        sprite.color = sf::Color(128, 128, 128);  // Серая (выключенная)
+
+        // Добавляем FSM компонент с начальным состоянием "off"
+        auto& fsm = m_registry.emplace<EntityStateComponent>(lamp, "off");
+
+        // Регистрируем коллбеки для состояний
+        // ВАЖНО: Захватываем entity, чтобы получить доступ к компонентам через registry
+        fsm.registerOnEnter("off", [this, lamp]() {
+            if (auto* spr = m_registry.try_get<SpriteComponent>(lamp)) {
+                spr->color = sf::Color(128, 128, 128);  // Серая
+                LOG_INFO("Lamp FSM: state → OFF (gray)");
+            }
+        });
+
+        fsm.registerOnEnter("on", [this, lamp]() {
+            if (auto* spr = m_registry.try_get<SpriteComponent>(lamp)) {
+                spr->color = sf::Color(255, 255, 0);  // Желтая (включенная)
+                LOG_INFO("Lamp FSM: state → ON (yellow)");
+            }
+        });
+
+        fsm.registerOnEnter("broken", [this, lamp]() {
+            if (auto* spr = m_registry.try_get<SpriteComponent>(lamp)) {
+                spr->color = sf::Color(255, 0, 0);  // Красная (сломанная)
+                LOG_WARN("Lamp FSM: state → BROKEN (red) - permanent failure!");
+            }
+        });
+
+        fsm.registerOnExit("on", []() {
+            LOG_INFO("Lamp FSM: exiting ON state");
+        });
+
+        LOG_INFO("Created Lamp FSM entity at (10, 6)");
+        LOG_INFO("Lamp starts in 'off' state (gray)");
+        LOG_INFO("To test FSM: manually trigger state transitions in code or via events");
+        LOG_INFO("Expected behavior: off (gray) → on (yellow) → broken (red)");
+    }
+
+    LOG_INFO("Tile test scene created with {} entities (including collision test objects and FSM lamp)", m_registry.storage<entt::entity>().size());
 }
 
 void GameState::drawDebugGrid(sf::RenderWindow& window) {

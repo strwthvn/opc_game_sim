@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 #include <optional>
 #include <functional>
@@ -311,6 +312,76 @@ struct CollisionComponent {
      */
     void setFromTileSize(int widthTiles, int heightTiles) {
         bounds.size = sf::Vector2f(widthTiles * TILE_SIZE, heightTiles * TILE_SIZE);
+    }
+};
+
+// ============== КОМПОНЕНТЫ FSM (КОНЕЧНЫЙ АВТОМАТ) ==============
+
+/**
+ * @brief Компонент состояния для конечных автоматов (FSM)
+ *
+ * Управляет состояниями сущности и переходами между ними.
+ * Вызывает коллбеки при входе и выходе из состояний.
+ * Используется для реализации поведения промышленных объектов (idle → running → error).
+ */
+struct EntityStateComponent {
+    std::string currentState;                     ///< Текущее состояние (например: "idle", "running", "error")
+    std::string previousState;                    ///< Предыдущее состояние
+    float timeInState = 0.0f;                     ///< Время в текущем состоянии (секунды)
+
+    /// Коллбеки при входе в состояние (ключ = имя состояния)
+    std::unordered_map<std::string, std::function<void()>> onEnterCallbacks;
+
+    /// Коллбеки при выходе из состояния (ключ = имя состояния)
+    std::unordered_map<std::string, std::function<void()>> onExitCallbacks;
+
+    /**
+     * @brief Конструктор по умолчанию
+     */
+    EntityStateComponent() : currentState(""), previousState(""), timeInState(0.0f) {}
+
+    /**
+     * @brief Конструктор с начальным состоянием
+     * @param initialState Начальное состояние
+     */
+    explicit EntityStateComponent(const std::string& initialState)
+        : currentState(initialState), previousState(""), timeInState(0.0f) {}
+
+    /**
+     * @brief Установить новое состояние
+     *
+     * Вызывает onExit для текущего состояния и onEnter для нового.
+     * Сбрасывает timeInState в 0.
+     *
+     * @param newState Новое состояние
+     */
+    void setState(const std::string& newState);
+
+    /**
+     * @brief Проверить, находится ли сущность в указанном состоянии
+     * @param stateName Имя состояния
+     * @return true если currentState == stateName
+     */
+    bool isInState(const std::string& stateName) const {
+        return currentState == stateName;
+    }
+
+    /**
+     * @brief Зарегистрировать коллбек для входа в состояние
+     * @param stateName Имя состояния
+     * @param callback Функция, вызываемая при входе в состояние
+     */
+    void registerOnEnter(const std::string& stateName, std::function<void()> callback) {
+        onEnterCallbacks[stateName] = std::move(callback);
+    }
+
+    /**
+     * @brief Зарегистрировать коллбек для выхода из состояния
+     * @param stateName Имя состояния
+     * @param callback Функция, вызываемая при выходе из состояния
+     */
+    void registerOnExit(const std::string& stateName, std::function<void()> callback) {
+        onExitCallbacks[stateName] = std::move(callback);
     }
 };
 
