@@ -1,6 +1,8 @@
 #include "core/ResourceManager.h"
 #include "core/Logger.h"
 #include <stdexcept>
+#include <thread>
+#include <chrono>
 
 namespace core {
 
@@ -46,14 +48,18 @@ const sf::Font& ResourceManager::getFont(const std::string& name) {
 }
 
 const sf::Texture& ResourceManager::getTexture(const std::string& path) {
-    // Проверяем кеш
-    auto it = m_textures.find(path);
-    if (it != m_textures.end()) {
-        return it->second;
+    // Проверяем кеш (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
+        auto it = m_textures.find(path);
+        if (it != m_textures.end()) {
+            return it->second;
+        }
     }
 
     // Не найден в кеше - пытаемся загрузить
     if (loadTexture(path)) {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
         return m_textures.at(path);
     }
 
@@ -69,7 +75,10 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& path)
         return false;
     }
 
-    m_fonts[name] = std::move(font);
+    {
+        std::lock_guard<std::mutex> lock(m_fontMutex);
+        m_fonts[name] = std::move(font);
+    }
     LOG_DEBUG("Font loaded: {} from {}", name, path);
     return true;
 }
@@ -81,7 +90,10 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& pa
         return false;
     }
 
-    m_textures[name] = std::move(texture);
+    {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
+        m_textures[name] = std::move(texture);
+    }
     LOG_DEBUG("Texture loaded: {} from {}", name, path);
     return true;
 }
@@ -97,7 +109,10 @@ bool ResourceManager::loadTextureFromImage(const std::string& name, const sf::Im
         return false;
     }
 
-    m_textures[name] = std::move(texture);
+    {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
+        m_textures[name] = std::move(texture);
+    }
     LOG_DEBUG("Texture loaded from image: {}", name);
     return true;
 }
@@ -175,6 +190,7 @@ bool ResourceManager::hasTexture(const std::string& name) const {
 }
 
 bool ResourceManager::unloadTexture(const std::string& name) {
+    std::lock_guard<std::mutex> lock(m_textureMutex);
     auto it = m_textures.find(name);
     if (it != m_textures.end()) {
         m_textures.erase(it);
@@ -186,6 +202,7 @@ bool ResourceManager::unloadTexture(const std::string& name) {
 }
 
 bool ResourceManager::unloadFont(const std::string& name) {
+    std::lock_guard<std::mutex> lock(m_fontMutex);
     auto it = m_fonts.find(name);
     if (it != m_fonts.end()) {
         m_fonts.erase(it);
@@ -215,7 +232,10 @@ bool ResourceManager::loadSound(const std::string& name, const std::string& path
         return false;
     }
 
-    m_soundBuffers[name] = std::move(buffer);
+    {
+        std::lock_guard<std::mutex> lock(m_soundMutex);
+        m_soundBuffers[name] = std::move(buffer);
+    }
     LOG_DEBUG("Sound loaded: {} from {}", name, path);
     return true;
 }
@@ -257,6 +277,7 @@ bool ResourceManager::hasSound(const std::string& name) const {
 }
 
 bool ResourceManager::unloadSound(const std::string& name) {
+    std::lock_guard<std::mutex> lock(m_soundMutex);
     auto it = m_soundBuffers.find(name);
     if (it != m_soundBuffers.end()) {
         m_soundBuffers.erase(it);
@@ -268,6 +289,10 @@ bool ResourceManager::unloadSound(const std::string& name) {
 }
 
 void ResourceManager::clear() {
+    std::lock_guard<std::mutex> textureLock(m_textureMutex);
+    std::lock_guard<std::mutex> fontLock(m_fontMutex);
+    std::lock_guard<std::mutex> soundLock(m_soundMutex);
+
     LOG_DEBUG("Clearing all resources: {} fonts, {} textures, {} sounds",
               m_fonts.size(), m_textures.size(), m_soundBuffers.size());
     m_fonts.clear();
@@ -311,6 +336,371 @@ std::string ResourceManager::getSystemFontPath() const {
     // Не найден ни один системный шрифт
     LOG_ERROR("No system font found! Tried {} paths", fontPaths.size());
     return "";
+}
+
+// ========== Асинхронная загрузка текстур ==========
+
+std::future<bool> ResourceManager::loadTextureAsync(const std::string& name, const std::string& path) {
+    LOG_DEBUG("Starting async texture load: {} from {}", name, path);
+
+    m_activeLoads++;
+
+    return std::async(std::launch::async, [this, name, path]() -> bool {
+        // Загружаем текстуру из файла в отдельном потоке
+        sf::Texture texture;
+        if (!texture.loadFromFile(path)) {
+            LOG_WARN("Failed to load texture from: {}", path);
+            m_activeLoads--;
+            return false;
+        }
+
+        // Помещаем загруженную текстуру в кеш (thread-safe)
+        {
+            std::lock_guard<std::mutex> lock(m_textureMutex);
+            m_textures[name] = std::move(texture);
+        }
+
+        LOG_DEBUG("Async texture loaded: {} from {}", name, path);
+        m_activeLoads--;
+        return true;
+    });
+}
+
+std::future<bool> ResourceManager::loadTextureAsync(const std::string& path) {
+    return loadTextureAsync(path, path);
+}
+
+// ========== Асинхронная загрузка шрифтов ==========
+
+std::future<bool> ResourceManager::loadFontAsync(const std::string& name, const std::string& path) {
+    LOG_DEBUG("Starting async font load: {} from {}", name, path);
+
+    m_activeLoads++;
+
+    return std::async(std::launch::async, [this, name, path]() -> bool {
+        // Загружаем шрифт из файла в отдельном потоке
+        sf::Font font;
+        if (!font.openFromFile(path)) {
+            LOG_WARN("Failed to load font from: {}", path);
+            m_activeLoads--;
+            return false;
+        }
+
+        // Помещаем загруженный шрифт в кеш (thread-safe)
+        {
+            std::lock_guard<std::mutex> lock(m_fontMutex);
+            m_fonts[name] = std::move(font);
+        }
+
+        LOG_DEBUG("Async font loaded: {} from {}", name, path);
+        m_activeLoads--;
+        return true;
+    });
+}
+
+// ========== Асинхронная загрузка звуков ==========
+
+std::future<bool> ResourceManager::loadSoundAsync(const std::string& name, const std::string& path) {
+    LOG_DEBUG("Starting async sound load: {} from {}", name, path);
+
+    m_activeLoads++;
+
+    return std::async(std::launch::async, [this, name, path]() -> bool {
+        // Загружаем звук из файла в отдельном потоке
+        sf::SoundBuffer buffer;
+        if (!buffer.loadFromFile(path)) {
+            LOG_WARN("Failed to load sound from: {}", path);
+            m_activeLoads--;
+            return false;
+        }
+
+        // Помещаем загруженный звук в кеш (thread-safe)
+        {
+            std::lock_guard<std::mutex> lock(m_soundMutex);
+            m_soundBuffers[name] = std::move(buffer);
+        }
+
+        LOG_DEBUG("Async sound loaded: {} from {}", name, path);
+        m_activeLoads--;
+        return true;
+    });
+}
+
+// ========== Проверка готовности ресурсов ==========
+
+bool ResourceManager::isTextureReady(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_textureMutex);
+    return m_textures.find(name) != m_textures.end();
+}
+
+bool ResourceManager::isFontReady(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_fontMutex);
+    return m_fonts.find(name) != m_fonts.end();
+}
+
+bool ResourceManager::isSoundReady(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_soundMutex);
+    return m_soundBuffers.find(name) != m_soundBuffers.end();
+}
+
+// ========== Ожидание загрузки ==========
+
+bool ResourceManager::waitForTexture(const std::string& name, int timeoutMs) {
+    if (isTextureReady(name)) {
+        return true;
+    }
+
+    LOG_DEBUG("Waiting for texture: {}", name);
+
+    auto startTime = std::chrono::steady_clock::now();
+
+    while (!isTextureReady(name)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        if (timeoutMs > 0) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+
+            if (elapsed >= timeoutMs) {
+                LOG_WARN("Timeout waiting for texture: {}", name);
+                return false;
+            }
+        }
+    }
+
+    LOG_DEBUG("Texture ready: {}", name);
+    return true;
+}
+
+bool ResourceManager::waitForFont(const std::string& name, int timeoutMs) {
+    if (isFontReady(name)) {
+        return true;
+    }
+
+    LOG_DEBUG("Waiting for font: {}", name);
+
+    auto startTime = std::chrono::steady_clock::now();
+
+    while (!isFontReady(name)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        if (timeoutMs > 0) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+
+            if (elapsed >= timeoutMs) {
+                LOG_WARN("Timeout waiting for font: {}", name);
+                return false;
+            }
+        }
+    }
+
+    LOG_DEBUG("Font ready: {}", name);
+    return true;
+}
+
+bool ResourceManager::waitForSound(const std::string& name, int timeoutMs) {
+    if (isSoundReady(name)) {
+        return true;
+    }
+
+    LOG_DEBUG("Waiting for sound: {}", name);
+
+    auto startTime = std::chrono::steady_clock::now();
+
+    while (!isSoundReady(name)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        if (timeoutMs > 0) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+
+            if (elapsed >= timeoutMs) {
+                LOG_WARN("Timeout waiting for sound: {}", name);
+                return false;
+            }
+        }
+    }
+
+    LOG_DEBUG("Sound ready: {}", name);
+    return true;
+}
+
+// ========== Асинхронная предзагрузка ==========
+
+std::future<size_t> ResourceManager::preloadTexturesAsync(
+    const std::vector<std::string>& paths,
+    std::function<void(float)> progressCallback,
+    std::function<void(size_t loaded, size_t total)> completionCallback) {
+
+    if (paths.empty()) {
+        return std::async(std::launch::deferred, []() { return size_t(0); });
+    }
+
+    LOG_INFO("Starting async preload of {} textures...", paths.size());
+
+    return std::async(std::launch::async, [this, paths, progressCallback, completionCallback]() -> size_t {
+        size_t loaded = 0;
+        size_t total = paths.size();
+
+        std::vector<std::future<bool>> futures;
+        futures.reserve(total);
+
+        // Запускаем загрузку всех текстур
+        for (const auto& path : paths) {
+            // Пропускаем уже загруженные
+            if (isTextureReady(path)) {
+                ++loaded;
+                if (progressCallback) {
+                    progressCallback(static_cast<float>(loaded) / static_cast<float>(total));
+                }
+            } else {
+                futures.push_back(loadTextureAsync(path));
+            }
+        }
+
+        // Ожидаем завершения всех загрузок
+        for (size_t i = 0; i < futures.size(); ++i) {
+            if (futures[i].get()) {
+                ++loaded;
+            }
+
+            if (progressCallback) {
+                float progress = static_cast<float>(loaded) / static_cast<float>(total);
+                progressCallback(progress);
+            }
+        }
+
+        LOG_INFO("Async preload completed: {}/{} textures", loaded, total);
+
+        if (completionCallback) {
+            completionCallback(loaded, total);
+        }
+
+        return loaded;
+    });
+}
+
+std::future<size_t> ResourceManager::preloadFontsAsync(
+    const std::vector<std::pair<std::string, std::string>>& fontConfigs,
+    std::function<void(float)> progressCallback,
+    std::function<void(size_t loaded, size_t total)> completionCallback) {
+
+    if (fontConfigs.empty()) {
+        return std::async(std::launch::deferred, []() { return size_t(0); });
+    }
+
+    LOG_INFO("Starting async preload of {} fonts...", fontConfigs.size());
+
+    return std::async(std::launch::async, [this, fontConfigs, progressCallback, completionCallback]() -> size_t {
+        size_t loaded = 0;
+        size_t total = fontConfigs.size();
+
+        std::vector<std::future<bool>> futures;
+        futures.reserve(total);
+
+        // Запускаем загрузку всех шрифтов
+        for (const auto& [name, path] : fontConfigs) {
+            // Пропускаем уже загруженные
+            if (isFontReady(name)) {
+                ++loaded;
+                if (progressCallback) {
+                    progressCallback(static_cast<float>(loaded) / static_cast<float>(total));
+                }
+            } else {
+                futures.push_back(loadFontAsync(name, path));
+            }
+        }
+
+        // Ожидаем завершения всех загрузок
+        for (size_t i = 0; i < futures.size(); ++i) {
+            if (futures[i].get()) {
+                ++loaded;
+            }
+
+            if (progressCallback) {
+                float progress = static_cast<float>(loaded) / static_cast<float>(total);
+                progressCallback(progress);
+            }
+        }
+
+        LOG_INFO("Async preload completed: {}/{} fonts", loaded, total);
+
+        if (completionCallback) {
+            completionCallback(loaded, total);
+        }
+
+        return loaded;
+    });
+}
+
+std::future<size_t> ResourceManager::preloadSoundsAsync(
+    const std::vector<std::pair<std::string, std::string>>& soundConfigs,
+    std::function<void(float)> progressCallback,
+    std::function<void(size_t loaded, size_t total)> completionCallback) {
+
+    if (soundConfigs.empty()) {
+        return std::async(std::launch::deferred, []() { return size_t(0); });
+    }
+
+    LOG_INFO("Starting async preload of {} sounds...", soundConfigs.size());
+
+    return std::async(std::launch::async, [this, soundConfigs, progressCallback, completionCallback]() -> size_t {
+        size_t loaded = 0;
+        size_t total = soundConfigs.size();
+
+        std::vector<std::future<bool>> futures;
+        futures.reserve(total);
+
+        // Запускаем загрузку всех звуков
+        for (const auto& [name, path] : soundConfigs) {
+            // Пропускаем уже загруженные
+            if (isSoundReady(name)) {
+                ++loaded;
+                if (progressCallback) {
+                    progressCallback(static_cast<float>(loaded) / static_cast<float>(total));
+                }
+            } else {
+                futures.push_back(loadSoundAsync(name, path));
+            }
+        }
+
+        // Ожидаем завершения всех загрузок
+        for (size_t i = 0; i < futures.size(); ++i) {
+            if (futures[i].get()) {
+                ++loaded;
+            }
+
+            if (progressCallback) {
+                float progress = static_cast<float>(loaded) / static_cast<float>(total);
+                progressCallback(progress);
+            }
+        }
+
+        LOG_INFO("Async preload completed: {}/{} sounds", loaded, total);
+
+        if (completionCallback) {
+            completionCallback(loaded, total);
+        }
+
+        return loaded;
+    });
+}
+
+// ========== Управление загрузками ==========
+
+void ResourceManager::waitForAllLoads() {
+    LOG_DEBUG("Waiting for all active loads to complete...");
+
+    while (m_activeLoads > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    LOG_DEBUG("All loads completed");
+}
+
+bool ResourceManager::hasActiveLoads() const {
+    return m_activeLoads > 0;
 }
 
 } // namespace core

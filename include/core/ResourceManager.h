@@ -8,6 +8,9 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <future>
+#include <mutex>
+#include <atomic>
 
 namespace core {
 
@@ -202,6 +205,146 @@ public:
      */
     size_t getSoundCount() const { return m_soundBuffers.size(); }
 
+    // ========== Асинхронная загрузка ==========
+
+    /**
+     * @brief Асинхронно загружает текстуру
+     *
+     * Загрузка происходит в отдельном потоке. Используйте isTextureReady()
+     * для проверки готовности или waitForTexture() для ожидания.
+     *
+     * @param name Имя текстуры для идентификации
+     * @param path Путь к файлу текстуры
+     * @return future для проверки статуса загрузки (true если успешно)
+     */
+    std::future<bool> loadTextureAsync(const std::string& name, const std::string& path);
+
+    /**
+     * @brief Асинхронно загружает текстуру (имя = путь)
+     * @param path Путь к файлу текстуры (также используется как имя)
+     * @return future для проверки статуса загрузки
+     */
+    std::future<bool> loadTextureAsync(const std::string& path);
+
+    /**
+     * @brief Асинхронно загружает шрифт
+     * @param name Имя шрифта для идентификации
+     * @param path Путь к файлу шрифта
+     * @return future для проверки статуса загрузки
+     */
+    std::future<bool> loadFontAsync(const std::string& name, const std::string& path);
+
+    /**
+     * @brief Асинхронно загружает звук
+     * @param name Имя звука для идентификации
+     * @param path Путь к файлу звука
+     * @return future для проверки статуса загрузки
+     */
+    std::future<bool> loadSoundAsync(const std::string& name, const std::string& path);
+
+    /**
+     * @brief Проверяет, загружена ли текстура (синхронно или асинхронно)
+     * @param name Имя текстуры
+     * @return true если текстура полностью загружена и доступна
+     */
+    bool isTextureReady(const std::string& name) const;
+
+    /**
+     * @brief Проверяет, загружен ли шрифт (синхронно или асинхронно)
+     * @param name Имя шрифта
+     * @return true если шрифт полностью загружен и доступен
+     */
+    bool isFontReady(const std::string& name) const;
+
+    /**
+     * @brief Проверяет, загружен ли звук (синхронно или асинхронно)
+     * @param name Имя звука
+     * @return true если звук полностью загружен и доступен
+     */
+    bool isSoundReady(const std::string& name) const;
+
+    /**
+     * @brief Ожидает завершения загрузки текстуры
+     *
+     * Блокирует выполнение до тех пор, пока текстура не будет загружена.
+     * Если текстура уже загружена, возвращает управление немедленно.
+     *
+     * @param name Имя текстуры
+     * @param timeoutMs Таймаут в миллисекундах (0 = бесконечное ожидание)
+     * @return true если текстура успешно загружена, false если таймаут или ошибка
+     */
+    bool waitForTexture(const std::string& name, int timeoutMs = 0);
+
+    /**
+     * @brief Ожидает завершения загрузки шрифта
+     * @param name Имя шрифта
+     * @param timeoutMs Таймаут в миллисекундах (0 = бесконечное ожидание)
+     * @return true если шрифт успешно загружен
+     */
+    bool waitForFont(const std::string& name, int timeoutMs = 0);
+
+    /**
+     * @brief Ожидает завершения загрузки звука
+     * @param name Имя звука
+     * @param timeoutMs Таймаут в миллисекундах (0 = бесконечное ожидание)
+     * @return true если звук успешно загружен
+     */
+    bool waitForSound(const std::string& name, int timeoutMs = 0);
+
+    /**
+     * @brief Предзагружает текстуры асинхронно
+     *
+     * Запускает загрузку всех текстур в фоновом режиме. Прогресс можно
+     * отслеживать через callback, который вызывается после каждой загрузки.
+     *
+     * @param paths Вектор путей к текстурам
+     * @param progressCallback Callback для отслеживания прогресса (0.0-1.0)
+     * @param completionCallback Callback, вызываемый по завершении загрузки всех ресурсов
+     * @return future для проверки завершения загрузки
+     */
+    std::future<size_t> preloadTexturesAsync(
+        const std::vector<std::string>& paths,
+        std::function<void(float)> progressCallback = nullptr,
+        std::function<void(size_t loaded, size_t total)> completionCallback = nullptr);
+
+    /**
+     * @brief Предзагружает шрифты асинхронно
+     * @param fontConfigs Вектор пар {имя, путь}
+     * @param progressCallback Callback для прогресса
+     * @param completionCallback Callback по завершении
+     * @return future для проверки завершения
+     */
+    std::future<size_t> preloadFontsAsync(
+        const std::vector<std::pair<std::string, std::string>>& fontConfigs,
+        std::function<void(float)> progressCallback = nullptr,
+        std::function<void(size_t loaded, size_t total)> completionCallback = nullptr);
+
+    /**
+     * @brief Предзагружает звуки асинхронно
+     * @param soundConfigs Вектор пар {имя, путь}
+     * @param progressCallback Callback для прогресса
+     * @param completionCallback Callback по завершении
+     * @return future для проверки завершения
+     */
+    std::future<size_t> preloadSoundsAsync(
+        const std::vector<std::pair<std::string, std::string>>& soundConfigs,
+        std::function<void(float)> progressCallback = nullptr,
+        std::function<void(size_t loaded, size_t total)> completionCallback = nullptr);
+
+    /**
+     * @brief Ожидает завершения всех активных асинхронных загрузок
+     *
+     * Блокирует выполнение до тех пор, пока все запущенные асинхронные
+     * операции загрузки не завершатся.
+     */
+    void waitForAllLoads();
+
+    /**
+     * @brief Проверяет наличие активных асинхронных загрузок
+     * @return true если есть незавершенные операции загрузки
+     */
+    bool hasActiveLoads() const;
+
 private:
     /**
      * @brief Загружает системный шрифт по умолчанию
@@ -212,6 +355,15 @@ private:
     std::unordered_map<std::string, sf::Font> m_fonts;          ///< Кеш шрифтов
     std::unordered_map<std::string, sf::Texture> m_textures;    ///< Кеш текстур
     std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers; ///< Кеш звуковых буферов
+
+    // Асинхронная загрузка
+    mutable std::mutex m_textureMutex;      ///< Мьютекс для безопасного доступа к текстурам
+    mutable std::mutex m_fontMutex;         ///< Мьютекс для безопасного доступа к шрифтам
+    mutable std::mutex m_soundMutex;        ///< Мьютекс для безопасного доступа к звукам
+    mutable std::mutex m_futuresMutex;      ///< Мьютекс для безопасного доступа к futures
+
+    std::vector<std::future<void>> m_activeFutures; ///< Активные асинхронные операции
+    std::atomic<int> m_activeLoads{0};               ///< Счетчик активных загрузок
 };
 
 } // namespace core

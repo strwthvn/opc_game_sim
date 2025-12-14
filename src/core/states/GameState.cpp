@@ -29,6 +29,9 @@ GameState::GameState(StateManager* stateManager)
     : State(stateManager)
     , m_font(nullptr)
     , m_fontLoaded(false)
+    , m_resourcesLoaded(false)
+    , m_sceneInitialized(false)
+    , m_loadingProgress(0.0f)
     , m_elapsedTime(0.0)
     , m_updateCount(0)
     , m_cameraZoom(Config::getInstance().get("camera.defaultZoom", 0.5f))
@@ -54,7 +57,29 @@ void GameState::onEnter() {
     m_uiView.setCenter(sf::Vector2f(windowSize.x / 2.0f, windowSize.y / 2.0f));
     LOG_DEBUG("GameState UI View initialized: {}x{} (window size)", windowSize.x, windowSize.y);
 
-    initializeScene();
+    // Загружаем шрифт синхронно для экрана загрузки
+    auto* resources = getResourceManager();
+    if (resources) {
+        try {
+            m_font = &resources->getFont("default");
+            m_fontLoaded = true;
+
+            // Создаем текст для экрана загрузки
+            m_loadingText = std::make_unique<sf::Text>(*m_font);
+            m_loadingText->setCharacterSize(32);
+            m_loadingText->setFillColor(sf::Color::White);
+            m_loadingText->setPosition(sf::Vector2f(windowSize.x / 2.0f - 200.0f, windowSize.y / 2.0f));
+            m_loadingText->setString("Loading resources...");
+
+            LOG_INFO("Loading screen initialized");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to load font for loading screen: {}", e.what());
+            m_fontLoaded = false;
+        }
+    }
+
+    // Запускаем асинхронную загрузку ресурсов
+    startAsyncResourceLoading();
 }
 
 void GameState::onExit() {
@@ -112,6 +137,37 @@ bool GameState::handleEvent(const sf::Event& event) {
 }
 
 void GameState::update(double dt) {
+    // Проверяем, завершена ли загрузка ресурсов
+    if (!m_resourcesLoaded) {
+        // Проверяем статус загрузки
+        if (m_loadingFuture.valid()) {
+            auto status = m_loadingFuture.wait_for(std::chrono::milliseconds(0));
+            if (status == std::future_status::ready) {
+                size_t loaded = m_loadingFuture.get();
+                LOG_INFO("Resource loading completed: {} resources loaded", loaded);
+                m_resourcesLoaded = true;
+                m_loadingProgress = 1.0f;
+            }
+        }
+
+        // Обновляем текст загрузки
+        if (m_loadingText && m_fontLoaded) {
+            std::ostringstream oss;
+            oss << "Loading resources... " << static_cast<int>(m_loadingProgress * 100) << "%";
+            m_loadingText->setString(oss.str());
+        }
+
+        return; // Не обновляем игру пока ресурсы не загружены
+    }
+
+    // Инициализируем сцену после загрузки ресурсов (один раз)
+    if (!m_sceneInitialized) {
+        LOG_INFO("All resources loaded, initializing scene...");
+        initializeScene();
+        m_sceneInitialized = true;
+        LOG_INFO("Scene initialized successfully");
+    }
+
     m_elapsedTime += dt;
     m_updateCount++;
 
@@ -270,6 +326,42 @@ void GameState::update(double dt) {
 }
 
 void GameState::render(sf::RenderWindow& window) {
+    // Если ресурсы еще загружаются, показываем экран загрузки
+    if (!m_resourcesLoaded) {
+        window.setView(m_uiView);
+
+        // Рисуем черный фон
+        window.clear(sf::Color::Black);
+
+        // Рисуем текст загрузки
+        if (m_loadingText && m_fontLoaded) {
+            window.draw(*m_loadingText);
+
+            // Рисуем прогресс-бар
+            auto windowSize = getWindowSize();
+            float barWidth = 400.0f;
+            float barHeight = 30.0f;
+            float barX = windowSize.x / 2.0f - barWidth / 2.0f;
+            float barY = windowSize.y / 2.0f + 60.0f;
+
+            // Рамка прогресс-бара
+            sf::RectangleShape barFrame(sf::Vector2f(barWidth, barHeight));
+            barFrame.setPosition(sf::Vector2f(barX, barY));
+            barFrame.setFillColor(sf::Color::Transparent);
+            barFrame.setOutlineColor(sf::Color::White);
+            barFrame.setOutlineThickness(2.0f);
+            window.draw(barFrame);
+
+            // Заполнение прогресс-бара
+            sf::RectangleShape barFill(sf::Vector2f(barWidth * m_loadingProgress, barHeight));
+            barFill.setPosition(sf::Vector2f(barX, barY));
+            barFill.setFillColor(sf::Color::Green);
+            window.draw(barFill);
+        }
+
+        return;
+    }
+
     // Устанавливаем World View для рендеринга игровых объектов
     window.setView(m_worldView);
 
@@ -443,25 +535,31 @@ void GameState::createTileTestScene() {
         return;
     }
 
-    // Загружаем тестовые PNG тайлы из assets/sprites/TEST
-    LOG_INFO("Loading tile textures from PNG files");
+    // Проверяем загрузку тестовых PNG тайлов (должны быть загружены асинхронно)
+    LOG_INFO("Checking async loaded tile textures");
 
-    // Зеленый тайл (земля) - из PNG файла
-    if (!resources->loadTexture("tile_green", "assets/sprites/TEST/testFloor1.png")) {
-        LOG_ERROR("Failed to load testFloor1.png");
+    // Зеленый тайл (земля) - уже загружен асинхронно
+    if (!resources->hasTexture("assets/sprites/TEST/testFloor1.png")) {
+        LOG_WARN("testFloor1.png not loaded, loading synchronously...");
+        resources->loadTexture("tile_green", "assets/sprites/TEST/testFloor1.png");
     } else {
-        LOG_INFO("Loaded tile_green from testFloor1.png");
+        LOG_INFO("testFloor1.png already loaded (async), creating alias 'tile_green'");
+        // Просто используем загруженную текстуру напрямую в спрайтах (изменим имена позже)
+        // Для обратной совместимости загрузим еще раз с коротким именем
+        resources->loadTexture("tile_green", "assets/sprites/TEST/testFloor1.png");
     }
 
     // Синий тайл (вода) - создаем в памяти
     sf::Image blueTile(sf::Vector2u(TILE_SIZE, TILE_SIZE), sf::Color(30, 144, 255));
     resources->loadTextureFromImage("tile_blue", blueTile);
 
-    // Коричневый тайл (объект) - из PNG файла
-    if (!resources->loadTexture("tile_brown", "assets/sprites/TEST/testObj.png")) {
-        LOG_ERROR("Failed to load testObj.png");
+    // Коричневый тайл (объект) - уже загружен асинхронно
+    if (!resources->hasTexture("assets/sprites/TEST/testObj.png")) {
+        LOG_WARN("testObj.png not loaded, loading synchronously...");
+        resources->loadTexture("tile_brown", "assets/sprites/TEST/testObj.png");
     } else {
-        LOG_INFO("Loaded tile_brown from testObj.png");
+        LOG_INFO("testObj.png already loaded (async), creating alias 'tile_brown'");
+        resources->loadTexture("tile_brown", "assets/sprites/TEST/testObj.png");
     }
 
     // Желтый тайл 2x2 (большой объект)
@@ -485,11 +583,13 @@ void GameState::createTileTestScene() {
     }
     resources->loadTextureFromImage("indicator_red", redIndicator);
 
-    // Спрайт-лист для анимации - загружаем из PNG файла (5 кадров по 32x32 = 160x32)
-    if (!resources->loadTexture("anim_pulse", "assets/sprites/TEST/testObjAnimation.png")) {
-        LOG_ERROR("Failed to load testObjAnimation.png");
+    // Спрайт-лист для анимации - уже загружен асинхронно
+    if (!resources->hasTexture("assets/sprites/TEST/testObjAnimation.png")) {
+        LOG_WARN("testObjAnimation.png not loaded, loading synchronously...");
+        resources->loadTexture("anim_pulse", "assets/sprites/TEST/testObjAnimation.png");
     } else {
-        LOG_INFO("Loaded anim_pulse from testObjAnimation.png (5 frames)");
+        LOG_INFO("testObjAnimation.png already loaded (async), creating alias 'anim_pulse'");
+        resources->loadTexture("anim_pulse", "assets/sprites/TEST/testObjAnimation.png");
     }
 
     // === 1. Создаем "пол" из зеленых тайлов (слой Ground) ===
@@ -827,6 +927,48 @@ void GameState::drawDebugGrid(sf::RenderWindow& window) {
 
     // Рисуем все линии одним вызовом
     window.draw(lines.data(), lines.size(), sf::PrimitiveType::Lines);
+}
+
+void GameState::startAsyncResourceLoading() {
+    LOG_INFO("Starting async resource loading");
+
+    auto* resources = getResourceManager();
+    if (!resources) {
+        LOG_ERROR("ResourceManager not available for async loading");
+        m_resourcesLoaded = true; // Пропускаем загрузку
+        return;
+    }
+
+    // Список всех текстур для загрузки
+    std::vector<std::string> texturePaths = {
+        "assets/sprites/TEST/testFloor1.png",
+        "assets/sprites/TEST/testObj.png",
+        "assets/sprites/TEST/testObjAnimation.png"
+    };
+
+    // Callback для отслеживания прогресса
+    auto progressCallback = [this](float progress) {
+        m_loadingProgress = progress;
+        LOG_DEBUG("Loading progress: {:.0f}%", progress * 100.0f);
+    };
+
+    // Callback по завершении
+    auto completionCallback = [](size_t loaded, size_t total) {
+        LOG_INFO("Resource loading completed: {}/{} textures", loaded, total);
+    };
+
+    // Запускаем асинхронную загрузку
+    m_loadingFuture = resources->preloadTexturesAsync(
+        texturePaths,
+        progressCallback,
+        completionCallback
+    );
+
+    LOG_INFO("Async loading started for {} textures", texturePaths.size());
+}
+
+bool GameState::areResourcesLoaded() const {
+    return m_resourcesLoaded;
 }
 
 } // namespace core

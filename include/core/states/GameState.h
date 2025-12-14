@@ -6,6 +6,7 @@
 #include <SFML/Graphics/View.hpp>
 #include <entt/entt.hpp>
 #include <memory>
+#include <future>
 
 namespace core {
 
@@ -72,9 +73,27 @@ private:
      */
     void createTileTestScene();
 
+    /**
+     * @brief Запускает асинхронную загрузку всех необходимых ресурсов
+     */
+    void startAsyncResourceLoading();
+
+    /**
+     * @brief Проверяет, завершена ли загрузка ресурсов
+     * @return true если все ресурсы загружены
+     */
+    bool areResourcesLoaded() const;
+
     const sf::Font* m_font;                    ///< Указатель на шрифт из ResourceManager
     std::unique_ptr<sf::Text> m_infoText;      ///< Информационный текст
     bool m_fontLoaded;                         ///< Флаг загрузки шрифта
+
+    // Асинхронная загрузка ресурсов
+    bool m_resourcesLoaded;                    ///< Флаг завершения загрузки ресурсов
+    bool m_sceneInitialized;                   ///< Флаг инициализации сцены
+    std::future<size_t> m_loadingFuture;       ///< Future для отслеживания загрузки
+    float m_loadingProgress;                   ///< Прогресс загрузки (0.0 - 1.0)
+    std::unique_ptr<sf::Text> m_loadingText;   ///< Текст экрана загрузки
 
     // Временные переменные для демонстрации
     double m_elapsedTime;                      ///< Время с начала игры
