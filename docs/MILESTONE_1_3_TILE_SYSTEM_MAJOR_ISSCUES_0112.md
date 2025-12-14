@@ -465,26 +465,26 @@
 <details>
 <summary>✅ Подзадачи</summary>
 
-- [ ] **2.3.1** Расширить ResourceManager
-  - [ ] Добавить `std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers;`
-  - [ ] Реализовать `bool loadSound(const std::string& name, const std::string& path)`
-  - [ ] Реализовать `const sf::SoundBuffer& getSound(const std::string& name)`
-  - [ ] Добавить `void preloadSounds(...)` с прогресс-коллбеком
+- [x] **2.3.1** Расширить ResourceManager
+  - [x] Добавить `std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers;`
+  - [x] Реализовать `bool loadSound(const std::string& name, const std::string& path)`
+  - [x] Реализовать `const sf::SoundBuffer& getSound(const std::string& name)`
+  - [x] Добавить `void preloadSounds(...)` с прогресс-коллбеком
 
-- [ ] **2.3.2** Создать AudioManager
-  - [ ] Управление проигрываемыми звуками (pool sf::Sound объектов)
-  - [ ] `void playSound(const std::string& name, float volume = 1.0f)`
-  - [ ] `void playMusic(const std::string& name, bool loop = true)`
-  - [ ] Контроль громкости (звуки, музыка, общая)
+- [x] **2.3.2** Создать AudioManager
+  - [x] Управление проигрываемыми звуками (pool sf::Sound объектов)
+  - [x] `void playSound(const std::string& name, float volume = 1.0f)`
+  - [x] `void playMusic(const std::string& name, bool loop = true)`
+  - [x] Контроль громкости (звуки, музыка, общая)
 
-- [ ] **2.3.3** Интеграция с SettingsState
-  - [ ] Добавить ползунки громкости в настройки
-  - [ ] Применять настройки к AudioManager
+- [x] **2.3.3** Интеграция с SettingsState
+  -  [x] Добавить ползунки громкости в настройки
+  - [x] Применять настройки к AudioManager
 
-- [ ] **2.3.4** Тестирование
-  - [ ] Загрузить тестовые звуки (напр., клик кнопки в меню)
-  - [ ] Проигрывать звук при выборе пункта меню
-  - [ ] Проверить изменение громкости в настройках
+- [x] **2.3.4** Тестирование
+  - [x] Загрузить тестовые звуки (напр., клик кнопки в меню)
+  - [x] Проигрывать звук при выборе пункта меню
+  - [x] Проверить изменение громкости в настройках
 
 **Критерии приемки:**
 - ✅ ResourceManager загружает звуки
@@ -506,15 +506,15 @@
 <details>
 <summary>✅ Подзадачи</summary>
 
-- [ ] **2.4.1** Выбор реализации
-  - [ ] Вариант A: boost::signals2 (thread-safe, готовое решение)
-  - [ ] Вариант B: Собственная реализация (легковесная, без зависимостей)
-  - [ ] **Решение:** boost::signals2 (уже в vcpkg.json)
+- [x] **2.4.1** Выбор реализации
+  - [x] Вариант A: boost::signals2 (thread-safe, готовое решение)
+  - [x] Вариант B: Собственная реализация (легковесная, без зависимостей)
+  - [x] **Решение:** boost::signals2 (уже в vcpkg.json)
 
-- [ ] **2.4.2** Создать EventBus
-  - [ ] `include/core/EventBus.h`
-  - [ ] Синглтон или глобальный объект
-  - [ ] Типы событий (enum или строки)
+- [x] **2.4.2** Создать EventBus
+  - [x] `include/core/EventBus.h`
+  - [x] Синглтон или глобальный объект
+  - [x] Типы событий (enum или строки)
   ```cpp
   class EventBus {
   public:
@@ -528,23 +528,23 @@
   };
   ```
 
-- [ ] **2.4.3** Определить базовые события
-  - [ ] `EntityCreatedEvent`, `EntityDestroyedEvent`
-  - [ ] `CollisionEvent`, `StateChangedEvent`
-  - [ ] `InputEvent` (клики, нажатия)
+- [x] **2.4.3** Определить базовые события
+  - [x] `EntityCreatedEvent`, `EntityDestroyedEvent`
+  - [x] `CollisionEvent`, `StateChangedEvent`
+  - [x] `InputEvent` (клики, нажатия)
 
-- [ ] **2.4.4** Интеграция в системы
-  - [ ] CollisionSystem публикует `CollisionEvent`
-  - [ ] FSMSystem публикует `StateChangedEvent`
-  - [ ] InputManager публикует `InputEvent` (опционально)
+- [x] **2.4.4** Интеграция в системы
+  - [x] CollisionSystem публикует `CollisionEvent`
+  - [x] FSMSystem публикует `StateChangedEvent`
+  - [x] InputManager публикует `InputEvent` (опционально)
 
-- [ ] **2.4.5** Пример использования
-  - [ ] Подписаться на `CollisionEvent` в скрипте/логике
-  - [ ] Воспроизвести звук при коллизии
+- [x] **2.4.5** Пример использования
+  - [x] Подписаться на `CollisionEvent` в скрипте/логике
+  - [x] Воспроизвести звук при коллизии
 
-- [ ] **2.4.6** Документация
-  - [ ] Обновить раздел "Система событий" в `ARCHITECTURE.md`
-  - [ ] Примеры подписки и публикации событий
+- [x] **2.4.6** Документация
+  - [x] Обновить раздел "Система событий" в `ARCHITECTURE.md`
+  - [x] Примеры подписки и публикации событий
 
 **Критерии приемки:**
 - ✅ EventBus реализован с boost::signals2
@@ -567,14 +567,14 @@
 <details>
 <summary>✅ Подзадачи</summary>
 
-- [ ] **2.5.1** Выбор формата
-  - [ ] JSON (простой, читаемый, есть nlohmann/json в vcpkg)
-  - [ ] YAML (более читаемый, но сложнее парсинг)
-  - [ ] **Решение:** JSON
+- [x] **2.5.1** Выбор формата
+  - [x] JSON (простой, читаемый, есть nlohmann/json в vcpkg)
+  - [x] YAML (более читаемый, но сложнее парсинг)
+  - [x] **Решение:** JSON
 
-- [ ] **2.5.2** Создать класс Config
-  - [ ] `include/core/Config.h`, `src/core/Config.cpp`
-  - [ ] Синглтон с методами `load()`, `save()`, `get<T>(key)`
+- [x] **2.5.2** Создать класс Config
+  - [x] `include/core/Config.h`, `src/core/Config.cpp`
+  - [x] Синглтон с методами `load()`, `save()`, `get<T>(key)`
   ```cpp
   class Config {
   public:
@@ -594,7 +594,7 @@
   };
   ```
 
-- [ ] **2.5.3** Создать config.json
+- [x] **2.5.3** Создать config.json
   ```json
   {
     "window": {
@@ -623,22 +623,22 @@
   }
   ```
 
-- [ ] **2.5.4** Рефакторинг Application
-  - [ ] Загружать `config.json` в `Application::Application()`
-  - [ ] Заменить `WindowConfig` на значения из Config
-  - [ ] Заменить `FIXED_TIMESTEP` на `Config::get<float>("game.fixedTimestep")`
+- [x] **2.5.4** Рефакторинг Application
+  - [x] Загружать `config.json` в `Application::Application()`
+  - [x] Заменить `WindowConfig` на значения из Config
+  - [x] Заменить `FIXED_TIMESTEP` на `Config::get<float>("game.fixedTimestep")`
 
-- [ ] **2.5.5** Рефакторинг GameState
-  - [ ] Заменить `CAMERA_MOVE_SPEED` и др. на значения из Config
-  - [ ] Обновлять конфиг при изменении настроек
+- [x] **2.5.5** Рефакторинг GameState
+  - [x] Заменить `CAMERA_MOVE_SPEED` и др. на значения из Config
+  - [x] Обновлять конфиг при изменении настроек
 
-- [ ] **2.5.6** Интеграция с SettingsState
-  - [ ] Сохранять изменения в Config
-  - [ ] Вызывать `Config::save()` при выходе из настроек
+- [x] **2.5.6** Интеграция с SettingsState
+  - [x] Сохранять изменения в Config
+  - [x] Вызывать `Config::save()` при выходе из настроек
 
-- [ ] **2.5.7** Тестирование
-  - [ ] Изменить настройки в `config.json` вручную → проверить применение
-  - [ ] Изменить в SettingsState → проверить сохранение в файл
+- [x] **2.5.7** Тестирование
+  - [x] Изменить настройки в `config.json` вручную → проверить применение
+  - [x] Изменить в SettingsState → проверить сохранение в файл
 
 **Критерии приемки:**
 - ✅ Config класс загружает и сохраняет JSON

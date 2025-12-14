@@ -4,6 +4,7 @@
 #include "core/StateManager.h"
 #include "core/InputManager.h"
 #include "core/ResourceManager.h"
+#include "core/Config.h"
 #include "core/systems/RenderSystem.h"
 #include "core/systems/UpdateSystem.h"
 #include "core/systems/LifetimeSystem.h"
@@ -30,7 +31,7 @@ GameState::GameState(StateManager* stateManager)
     , m_fontLoaded(false)
     , m_elapsedTime(0.0)
     , m_updateCount(0)
-    , m_cameraZoom(CAMERA_DEFAULT_ZOOM)
+    , m_cameraZoom(Config::getInstance().get("camera.defaultZoom", 0.5f))
     , m_debugDrawGrid(true) {  // Включаем отладочную сетку по умолчанию
 }
 
@@ -88,12 +89,16 @@ bool GameState::handleEvent(const sf::Event& event) {
     // Обработка зума колесом мыши (SFML 3 API)
     if (const auto* wheelScrolled = event.getIf<sf::Event::MouseWheelScrolled>()) {
         if (wheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
+            auto& config = Config::getInstance();
             // Зум in/out
             float delta = wheelScrolled->delta;
-            m_cameraZoom -= delta * CAMERA_ZOOM_SPEED;
+            float zoomSpeed = config.get("camera.zoomSpeed", 0.1f);
+            m_cameraZoom -= delta * zoomSpeed;
 
             // Ограничиваем зум
-            m_cameraZoom = std::clamp(m_cameraZoom, CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM);
+            float minZoom = config.get("camera.minZoom", 0.2f);
+            float maxZoom = config.get("camera.maxZoom", 1.0f);
+            m_cameraZoom = std::clamp(m_cameraZoom, minZoom, maxZoom);
 
             LOG_DEBUG("Camera zoom: {:.2f}", m_cameraZoom);
             return true;  // Событие обработано
@@ -132,7 +137,8 @@ void GameState::update(double dt) {
 
         // Перемещение камеры (WASD)
         sf::Vector2f cameraMove(0.0f, 0.0f);
-        float moveSpeed = CAMERA_MOVE_SPEED * static_cast<float>(dt);
+        float cameraMoveSpeed = Config::getInstance().get("camera.moveSpeed", 600.0f);
+        float moveSpeed = cameraMoveSpeed * static_cast<float>(dt);
 
         // Учитываем зум при перемещении (больший зум = медленнее перемещение)
         moveSpeed *= m_cameraZoom;

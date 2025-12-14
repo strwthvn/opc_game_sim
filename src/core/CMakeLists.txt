@@ -10,6 +10,7 @@ target_sources(Core
         InputManager.cpp
         ResourceManager.cpp
         AudioManager.cpp
+        Config.cpp
         Components.cpp
         EventBus.cpp
         State.cpp
@@ -46,6 +47,7 @@ target_link_libraries(Core
         fmt::fmt
         EnTT::EnTT
         Boost::headers
+        yaml-cpp::yaml-cpp
     PRIVATE
 )
 

@@ -7,6 +7,7 @@
 #include "ResourceManager.h"
 #include "AudioManager.h"
 #include "StateManager.h"
+#include "Config.h"
 #include <memory>
 
 namespace core {

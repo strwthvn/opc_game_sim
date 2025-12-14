@@ -2,6 +2,7 @@
 #include "core/StateManager.h"
 #include "core/ResourceManager.h"
 #include "core/AudioManager.h"
+#include "core/Config.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -43,12 +44,23 @@ SettingsState::SettingsState(StateManager* stateManager)
 void SettingsState::onEnter() {
     LOG_INFO("Entering SettingsState");
 
-    // Загружаем текущие настройки громкости из AudioManager
+    // Загружаем настройки из Config
+    auto& config = Config::getInstance();
+
+    // Загружаем текущие настройки громкости из Config
+    m_masterVolume = config.get("audio.masterVolume", 100);
+    LOG_DEBUG("Loaded master volume from config: {}", m_masterVolume);
+
+    // Также можем загружать из AudioManager (на случай если настройки изменились в рантайме)
     auto* audioManager = getAudioManager();
     if (audioManager) {
         m_masterVolume = static_cast<int>(audioManager->getMasterVolume());
-        LOG_DEBUG("Loaded current master volume: {}", m_masterVolume);
+        LOG_DEBUG("Loaded current master volume from AudioManager: {}", m_masterVolume);
     }
+
+    // Загружаем VSync из конфига
+    m_vsyncEnabled = config.get("window.vsync", true);
+    LOG_DEBUG("Loaded VSync setting: {}", m_vsyncEnabled);
 
     // Инициализируем UI View размером окна (1:1 пиксели)
     auto windowSize = getWindowSize();
@@ -340,6 +352,26 @@ void SettingsState::applySettings() {
     LOG_INFO("  VSync: {}", m_vsyncEnabled);
     LOG_INFO("  Master Volume: {}", m_masterVolume);
 
+    // Сохраняем настройки в Config
+    auto& config = Config::getInstance();
+
+    // Сохраняем разрешение окна
+    config.set("window.width", static_cast<int>(m_availableResolutions[m_currentResolutionIndex].width));
+    config.set("window.height", static_cast<int>(m_availableResolutions[m_currentResolutionIndex].height));
+
+    // Сохраняем VSync
+    config.set("window.vsync", m_vsyncEnabled);
+
+    // Сохраняем громкость
+    config.set("audio.masterVolume", m_masterVolume);
+
+    // Сохраняем конфиг в файл
+    if (config.save("config.yaml")) {
+        LOG_INFO("Settings saved to config.yaml successfully");
+    } else {
+        LOG_ERROR("Failed to save settings to config.yaml");
+    }
+
     // Применяем громкость через AudioManager
     auto* audioManager = getAudioManager();
     if (audioManager) {
@@ -353,7 +385,7 @@ void SettingsState::applySettings() {
     // Для разрешения потребуется рестарт окна или пересоздание
     // VSync можно применить через window.setVerticalSyncEnabled()
 
-    LOG_WARN("Resolution/VSync application not implemented yet - requires restart");
+    LOG_WARN("Resolution/VSync changes will take effect on next restart");
     m_settingsChanged = false;
 }
 

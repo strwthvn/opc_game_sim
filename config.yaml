@@ -1,0 +1,36 @@
+# OPC Game Simulator Configuration File
+# This file contains application settings that can be modified without recompilation
+
+# Window settings
+window:
+  width: 1280
+  height: 720
+  title: "OPC Game Simulator"
+  vsync: true
+  frameRateLimit: 60
+
+# Camera settings
+camera:
+  moveSpeed: 600.0        # Pixels per second
+  zoomSpeed: 0.1          # Zoom step per mouse wheel tick
+  minZoom: 0.2            # Minimum zoom level (0.2 = 20%)
+  maxZoom: 1.0            # Maximum zoom level (1.0 = 100%)
+  defaultZoom: 0.5        # Default zoom level (0.5 = 50%)
+
+# Game loop settings
+game:
+  fixedTimestep: 0.01666667   # ~60 updates per second (1/60)
+  maxFrameTime: 0.25          # Maximum frame time to prevent spiral of death
+  metricsLogInterval: 5.0     # How often to log performance metrics (seconds)
+
+# Audio settings
+audio:
+  masterVolume: 100       # Master volume (0-100)
+  musicVolume: 80         # Music volume (0-100)
+  sfxVolume: 100          # Sound effects volume (0-100)
+
+# Logging settings
+logging:
+  enabled: true
+  logToFile: true
+  logFilePath: "logs/opc_game_sim.log"
