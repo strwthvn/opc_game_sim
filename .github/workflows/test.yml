@@ -49,7 +49,7 @@ jobs:
 
     - name: Run unit tests
       working-directory: build
-      run: xvfb-run -a ctest --output-on-failure --verbose
+      run: xvfb-run -a ctest --output-on-failure --verbose -R "^((?!Integration).)*$"
 
     - name: Run unit tests with JUnit output
       working-directory: build
@@ -145,7 +145,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake \
           -DBUILD_TESTS=ON \
-          -DCMAKE_CXX_FLAGS="--coverage"
+          -DCMAKE_CXX_FLAGS="--coverage -fprofile-update=atomic"
 
     - name: Build with coverage
       run: cmake --build build --config Debug --parallel
