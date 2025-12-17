@@ -49,7 +49,8 @@ jobs:
           libxi-dev \
           libudev-dev \
           libgl1-mesa-dev \
-          pkg-config
+          pkg-config \
+          xvfb
 
     - name: Configure CMake
       run: |
@@ -61,7 +62,13 @@ jobs:
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
-    - name: Run tests
+    - name: Run tests (Linux)
+      if: runner.os == 'Linux'
+      working-directory: build
+      run: xvfb-run -a ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+    - name: Run tests (Windows/macOS)
+      if: runner.os != 'Linux'
       working-directory: build
       run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
 

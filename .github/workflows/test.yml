@@ -34,7 +34,8 @@ jobs:
           libxi-dev \
           libudev-dev \
           libgl1-mesa-dev \
-          pkg-config
+          pkg-config \
+          xvfb
 
     - name: Configure CMake
       run: |
@@ -48,11 +49,11 @@ jobs:
 
     - name: Run unit tests
       working-directory: build
-      run: ctest --output-on-failure --verbose
+      run: xvfb-run -a ctest --output-on-failure --verbose
 
     - name: Run unit tests with JUnit output
       working-directory: build
-      run: ./bin/UnitTests --reporter junit --out unit-tests.xml || true
+      run: xvfb-run -a ./bin/UnitTests --reporter junit --out unit-tests.xml || true
       continue-on-error: true
 
     - name: Upload test results
@@ -86,7 +87,8 @@ jobs:
           libxi-dev \
           libudev-dev \
           libgl1-mesa-dev \
-          pkg-config
+          pkg-config \
+          xvfb
 
     - name: Configure CMake
       run: |
@@ -100,7 +102,7 @@ jobs:
 
     - name: Run integration tests
       working-directory: build
-      run: ./bin/IntegrationTests --reporter junit --out integration-tests.xml || true
+      run: xvfb-run -a ./bin/IntegrationTests --reporter junit --out integration-tests.xml || true
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -134,6 +136,7 @@ jobs:
           libudev-dev \
           libgl1-mesa-dev \
           pkg-config \
+          xvfb \
           lcov
 
     - name: Configure CMake with coverage
@@ -149,7 +152,7 @@ jobs:
 
     - name: Run tests
       working-directory: build
-      run: ctest -C Debug --output-on-failure
+      run: xvfb-run -a ctest -C Debug --output-on-failure
 
     - name: Generate coverage report
       run: |
