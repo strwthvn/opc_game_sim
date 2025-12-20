@@ -697,30 +697,30 @@
 <details>
 <summary>✅ Подзадачи</summary>
 
-- [ ] **3.2.1** Настроить Catch2
-  - [ ] Уже в vcpkg.json, проверить CMakeLists.txt
-  - [ ] Создать `tests/` директорию
-  - [ ] Настроить CTest
+- [x] **3.2.1** Настроить Catch2
+  - [x] Уже в vcpkg.json, проверить CMakeLists.txt
+  - [x] Создать `tests/` директорию
+  - [x] Настроить CTest
 
-- [ ] **3.2.2** Написать тесты для компонентов
-  - [ ] `TilePositionComponent::getPixelPosition()`
-  - [ ] `TilePositionComponent::containsTile()`
-  - [ ] Конверсия координат
+- [x] **3.2.2** Написать тесты для компонентов
+  - [x] `TilePositionComponent::getPixelPosition()`
+  - [x] `TilePositionComponent::containsTile()`
+  - [x] Конверсия координат
 
-- [ ] **3.2.3** Написать тесты для систем
-  - [ ] TilePositionSystem (синхронизация)
-  - [ ] CollisionSystem (AABB проверки)
-  - [ ] FSMSystem (смена состояний)
+- [x] **3.2.3** Написать тесты для систем
+  - [x] TilePositionSystem (синхронизация)
+  - [x] CollisionSystem (AABB проверки)
+  - [x] FSMSystem (смена состояний)
 
-- [ ] **3.2.4** Написать тесты для утилит
-  - [ ] ResourceManager (загрузка/выгрузка)
-  - [ ] Config (load/save/get/set)
-  - [ ] Logger (различные уровни)
+- [x] **3.2.4** Написать тесты для утилит
+  - [x] ResourceManager (загрузка/выгрузка)
+  - [x] Config (load/save/get/set)
+  -  [x] Logger (различные уровни)
 
-- [ ] **3.2.5** CI интеграция
-  - [ ] Обновить `.github/workflows/test.yml`
-  - [ ] Запускать тесты на каждый PR
-  - [ ] Code coverage отчет (lcov/gcov)
+- [x] **3.2.5** CI интеграция
+  - [x] Обновить `.github/workflows/test.yml`
+  - [x] Запускать тесты на каждый PR
+  - [x] Code coverage отчет (lcov/gcov)
 
 **Критерии приемки:**
 - ✅ Минимум 50% покрытие кода Core модуля
@@ -751,15 +751,15 @@
   MemoryStats getMemoryUsage() const;
   ```
 
-- [ ] **3.3.2** Вычисление размера текстур
-  - [ ] `texture.getSize()` → width * height * 4 (RGBA)
+- [x] **3.3.2** Вычисление размера текстур
+  - [x] `texture.getSize()` → width * height * 4 (RGBA)
 
-- [ ] **3.3.3** Логирование
-  - [ ] Выводить статистику при загрузке/выгрузке ресурсов
-  - [ ] Предупреждение при превышении лимита (например, 512 МБ)
+- [x] **3.3.3** Логирование
+  - [x] Выводить статистику при загрузке/выгрузке ресурсов
+  - [x] Предупреждение при превышении лимита (например, 512 МБ)
 
-- [ ] **3.3.4** Отображение в ImGui (будущее)
-  - [ ] Панель с графиком потребления памяти
+- [x] **3.3.4** Отображение в ImGui (будущее)
+  - [x] Панель с графиком потребления памяти
 
 **Критерии приемки:**
 - ✅ Метод `getMemoryUsage()` возвращает корректные значения

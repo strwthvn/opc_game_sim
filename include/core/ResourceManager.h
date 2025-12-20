@@ -345,12 +345,64 @@ public:
      */
     bool hasActiveLoads() const;
 
+    // ========== Отслеживание памяти ==========
+
+    /**
+     * @brief Структура для статистики использования памяти
+     */
+    struct MemoryStats {
+        size_t texturesMemory = 0;  ///< Память, занятая текстурами (байты)
+        size_t fontsMemory = 0;     ///< Память, занятая шрифтами (байты)
+        size_t soundsMemory = 0;    ///< Память, занятая звуками (байты)
+        size_t totalMemory = 0;     ///< Общая занятая память (байты)
+
+        /**
+         * @brief Форматирует размер в читаемый вид
+         * @param bytes Размер в байтах
+         * @return Строка вида "123.45 KB" или "2.34 MB"
+         */
+        static std::string formatSize(size_t bytes);
+    };
+
+    /**
+     * @brief Возвращает статистику использования памяти
+     *
+     * Вычисляет объем памяти, занимаемый всеми загруженными ресурсами.
+     * Для текстур используется формула: width * height * 4 (RGBA).
+     * Для звуков: sampleCount * channelCount * sizeof(int16_t).
+     *
+     * @return Структура со статистикой памяти
+     */
+    MemoryStats getMemoryUsage() const;
+
 private:
     /**
      * @brief Загружает системный шрифт по умолчанию
      * @return Путь к системному шрифту или пустую строку
      */
     std::string getSystemFontPath() const;
+
+    /**
+     * @brief Вычисляет размер текстуры в памяти
+     * @param texture Текстура
+     * @return Размер в байтах (width * height * 4 для RGBA)
+     */
+    static size_t calculateTextureSize(const sf::Texture& texture);
+
+    /**
+     * @brief Вычисляет размер звукового буфера в памяти
+     * @param buffer Звуковой буфер
+     * @return Размер в байтах
+     */
+    static size_t calculateSoundSize(const sf::SoundBuffer& buffer);
+
+    /**
+     * @brief Проверяет превышение лимита памяти и выводит предупреждение
+     * @param stats Статистика памяти
+     */
+    void checkMemoryLimit(const MemoryStats& stats) const;
+
+    static constexpr size_t MEMORY_LIMIT_WARNING = 512 * 1024 * 1024; ///< Лимит памяти (512 МБ)
 
     std::unordered_map<std::string, sf::Font> m_fonts;          ///< Кеш шрифтов
     std::unordered_map<std::string, sf::Texture> m_textures;    ///< Кеш текстур

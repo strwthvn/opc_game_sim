@@ -79,7 +79,13 @@ bool ResourceManager::loadFont(const std::string& name, const std::string& path)
         std::lock_guard<std::mutex> lock(m_fontMutex);
         m_fonts[name] = std::move(font);
     }
-    LOG_DEBUG("Font loaded: {} from {}", name, path);
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Loaded font '{}' (~100 KB), total memory: {}",
+             name,
+             MemoryStats::formatSize(stats.totalMemory));
+
+    checkMemoryLimit(stats);
     return true;
 }
 
@@ -90,11 +96,20 @@ bool ResourceManager::loadTexture(const std::string& name, const std::string& pa
         return false;
     }
 
+    size_t textureSize = calculateTextureSize(texture);
+
     {
         std::lock_guard<std::mutex> lock(m_textureMutex);
         m_textures[name] = std::move(texture);
     }
-    LOG_DEBUG("Texture loaded: {} from {}", name, path);
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Loaded texture '{}' ({}), total memory: {}",
+             name,
+             MemoryStats::formatSize(textureSize),
+             MemoryStats::formatSize(stats.totalMemory));
+
+    checkMemoryLimit(stats);
     return true;
 }
 
@@ -109,11 +124,20 @@ bool ResourceManager::loadTextureFromImage(const std::string& name, const sf::Im
         return false;
     }
 
+    size_t textureSize = calculateTextureSize(texture);
+
     {
         std::lock_guard<std::mutex> lock(m_textureMutex);
         m_textures[name] = std::move(texture);
     }
-    LOG_DEBUG("Texture loaded from image: {}", name);
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Loaded texture from image '{}' ({}), total memory: {}",
+             name,
+             MemoryStats::formatSize(textureSize),
+             MemoryStats::formatSize(stats.totalMemory));
+
+    checkMemoryLimit(stats);
     return true;
 }
 
@@ -190,27 +214,44 @@ bool ResourceManager::hasTexture(const std::string& name) const {
 }
 
 bool ResourceManager::unloadTexture(const std::string& name) {
-    std::lock_guard<std::mutex> lock(m_textureMutex);
-    auto it = m_textures.find(name);
-    if (it != m_textures.end()) {
-        m_textures.erase(it);
-        LOG_DEBUG("Texture unloaded: {}", name);
-        return true;
+    size_t textureSize = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
+        auto it = m_textures.find(name);
+        if (it != m_textures.end()) {
+            textureSize = calculateTextureSize(it->second);
+            m_textures.erase(it);
+        } else {
+            LOG_WARN("Cannot unload texture '{}': not found", name);
+            return false;
+        }
     }
-    LOG_WARN("Cannot unload texture '{}': not found", name);
-    return false;
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Unloaded texture '{}' ({}), total memory: {}",
+             name,
+             MemoryStats::formatSize(textureSize),
+             MemoryStats::formatSize(stats.totalMemory));
+    return true;
 }
 
 bool ResourceManager::unloadFont(const std::string& name) {
-    std::lock_guard<std::mutex> lock(m_fontMutex);
-    auto it = m_fonts.find(name);
-    if (it != m_fonts.end()) {
-        m_fonts.erase(it);
-        LOG_DEBUG("Font unloaded: {}", name);
-        return true;
+    {
+        std::lock_guard<std::mutex> lock(m_fontMutex);
+        auto it = m_fonts.find(name);
+        if (it != m_fonts.end()) {
+            m_fonts.erase(it);
+        } else {
+            LOG_WARN("Cannot unload font '{}': not found", name);
+            return false;
+        }
     }
-    LOG_WARN("Cannot unload font '{}': not found", name);
-    return false;
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Unloaded font '{}' (~100 KB), total memory: {}",
+             name,
+             MemoryStats::formatSize(stats.totalMemory));
+    return true;
 }
 
 const sf::SoundBuffer& ResourceManager::getSound(const std::string& name) {
@@ -232,11 +273,20 @@ bool ResourceManager::loadSound(const std::string& name, const std::string& path
         return false;
     }
 
+    size_t soundSize = calculateSoundSize(buffer);
+
     {
         std::lock_guard<std::mutex> lock(m_soundMutex);
         m_soundBuffers[name] = std::move(buffer);
     }
-    LOG_DEBUG("Sound loaded: {} from {}", name, path);
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Loaded sound '{}' ({}), total memory: {}",
+             name,
+             MemoryStats::formatSize(soundSize),
+             MemoryStats::formatSize(stats.totalMemory));
+
+    checkMemoryLimit(stats);
     return true;
 }
 
@@ -277,24 +327,37 @@ bool ResourceManager::hasSound(const std::string& name) const {
 }
 
 bool ResourceManager::unloadSound(const std::string& name) {
-    std::lock_guard<std::mutex> lock(m_soundMutex);
-    auto it = m_soundBuffers.find(name);
-    if (it != m_soundBuffers.end()) {
-        m_soundBuffers.erase(it);
-        LOG_DEBUG("Sound unloaded: {}", name);
-        return true;
+    size_t soundSize = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_soundMutex);
+        auto it = m_soundBuffers.find(name);
+        if (it != m_soundBuffers.end()) {
+            soundSize = calculateSoundSize(it->second);
+            m_soundBuffers.erase(it);
+        } else {
+            LOG_WARN("Cannot unload sound '{}': not found", name);
+            return false;
+        }
     }
-    LOG_WARN("Cannot unload sound '{}': not found", name);
-    return false;
+
+    auto stats = getMemoryUsage();
+    LOG_INFO("Unloaded sound '{}' ({}), total memory: {}",
+             name,
+             MemoryStats::formatSize(soundSize),
+             MemoryStats::formatSize(stats.totalMemory));
+    return true;
 }
 
 void ResourceManager::clear() {
+    auto statsBefore = getMemoryUsage();
+
     std::lock_guard<std::mutex> textureLock(m_textureMutex);
     std::lock_guard<std::mutex> fontLock(m_fontMutex);
     std::lock_guard<std::mutex> soundLock(m_soundMutex);
 
-    LOG_DEBUG("Clearing all resources: {} fonts, {} textures, {} sounds",
-              m_fonts.size(), m_textures.size(), m_soundBuffers.size());
+    LOG_INFO("Clearing all resources: {} fonts, {} textures, {} sounds ({})",
+              m_fonts.size(), m_textures.size(), m_soundBuffers.size(),
+              MemoryStats::formatSize(statsBefore.totalMemory));
     m_fonts.clear();
     m_textures.clear();
     m_soundBuffers.clear();
@@ -354,13 +417,21 @@ std::future<bool> ResourceManager::loadTextureAsync(const std::string& name, con
             return false;
         }
 
+        size_t textureSize = calculateTextureSize(texture);
+
         // Помещаем загруженную текстуру в кеш (thread-safe)
         {
             std::lock_guard<std::mutex> lock(m_textureMutex);
             m_textures[name] = std::move(texture);
         }
 
-        LOG_DEBUG("Async texture loaded: {} from {}", name, path);
+        auto stats = getMemoryUsage();
+        LOG_INFO("Async loaded texture '{}' ({}), total memory: {}",
+                 name,
+                 MemoryStats::formatSize(textureSize),
+                 MemoryStats::formatSize(stats.totalMemory));
+
+        checkMemoryLimit(stats);
         m_activeLoads--;
         return true;
     });
@@ -701,6 +772,81 @@ void ResourceManager::waitForAllLoads() {
 
 bool ResourceManager::hasActiveLoads() const {
     return m_activeLoads > 0;
+}
+
+// ========== Отслеживание памяти ==========
+
+std::string ResourceManager::MemoryStats::formatSize(size_t bytes) {
+    constexpr size_t KB = 1024;
+    constexpr size_t MB = KB * 1024;
+    constexpr size_t GB = MB * 1024;
+
+    if (bytes >= GB) {
+        return fmt::format("{:.2f} GB", static_cast<double>(bytes) / GB);
+    } else if (bytes >= MB) {
+        return fmt::format("{:.2f} MB", static_cast<double>(bytes) / MB);
+    } else if (bytes >= KB) {
+        return fmt::format("{:.2f} KB", static_cast<double>(bytes) / KB);
+    } else {
+        return fmt::format("{} B", bytes);
+    }
+}
+
+size_t ResourceManager::calculateTextureSize(const sf::Texture& texture) {
+    auto size = texture.getSize();
+    // RGBA формат: 4 байта на пиксель
+    return size.x * size.y * 4;
+}
+
+size_t ResourceManager::calculateSoundSize(const sf::SoundBuffer& buffer) {
+    // Звуковые данные: количество сэмплов * количество каналов * sizeof(int16_t)
+    // SFML хранит аудио-сэмплы как 16-битные значения
+    return buffer.getSampleCount() * buffer.getChannelCount() * sizeof(int16_t);
+}
+
+ResourceManager::MemoryStats ResourceManager::getMemoryUsage() const {
+    MemoryStats stats;
+
+    // Вычисляем память текстур (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(m_textureMutex);
+        for (const auto& [name, texture] : m_textures) {
+            stats.texturesMemory += calculateTextureSize(texture);
+        }
+    }
+
+    // Вычисляем память шрифтов (thread-safe)
+    // Примечание: SFML не предоставляет способа точно измерить размер шрифта,
+    // поэтому используем приблизительную оценку
+    {
+        std::lock_guard<std::mutex> lock(m_fontMutex);
+        // Приблизительная оценка: ~100 КБ на шрифт
+        stats.fontsMemory = m_fonts.size() * 100 * 1024;
+    }
+
+    // Вычисляем память звуков (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(m_soundMutex);
+        for (const auto& [name, buffer] : m_soundBuffers) {
+            stats.soundsMemory += calculateSoundSize(buffer);
+        }
+    }
+
+    stats.totalMemory = stats.texturesMemory + stats.fontsMemory + stats.soundsMemory;
+
+    return stats;
+}
+
+void ResourceManager::checkMemoryLimit(const MemoryStats& stats) const {
+    if (stats.totalMemory > MEMORY_LIMIT_WARNING) {
+        LOG_WARN("Memory usage exceeds recommended limit! Total: {} (limit: {})",
+                 MemoryStats::formatSize(stats.totalMemory),
+                 MemoryStats::formatSize(MEMORY_LIMIT_WARNING));
+        LOG_WARN("  Textures: {}, Fonts: {}, Sounds: {}",
+                 MemoryStats::formatSize(stats.texturesMemory),
+                 MemoryStats::formatSize(stats.fontsMemory),
+                 MemoryStats::formatSize(stats.soundsMemory));
+    }
 }
 
 } // namespace core

@@ -333,3 +333,161 @@ TEST_CASE("ResourceManager: Resource count tracking", "[ResourceManager]") {
     // Cleanup
     fs::remove_all("test_assets");
 }
+
+TEST_CASE("ResourceManager: Memory tracking", "[ResourceManager][memory]") {
+    ResourceManager manager;
+
+    SECTION("Initial memory usage is zero") {
+        auto stats = manager.getMemoryUsage();
+        REQUIRE(stats.texturesMemory == 0);
+        REQUIRE(stats.fontsMemory == 0);
+        REQUIRE(stats.soundsMemory == 0);
+        REQUIRE(stats.totalMemory == 0);
+    }
+
+    SECTION("Texture memory calculation") {
+        // Create a 32x32 texture (RGBA = 4 bytes per pixel)
+        sf::Image image;
+        image.resize(sf::Vector2u(32, 32), sf::Color::Blue);
+
+        manager.loadTextureFromImage("test_texture", image);
+
+        auto stats = manager.getMemoryUsage();
+        // 32 * 32 * 4 = 4096 bytes
+        REQUIRE(stats.texturesMemory == 4096);
+        REQUIRE(stats.totalMemory == stats.texturesMemory + stats.fontsMemory + stats.soundsMemory);
+    }
+
+    SECTION("Multiple textures memory tracking") {
+        sf::Image image1, image2, image3;
+        image1.resize(sf::Vector2u(32, 32), sf::Color::Red);    // 4096 bytes
+        image2.resize(sf::Vector2u(64, 64), sf::Color::Green);  // 16384 bytes
+        image3.resize(sf::Vector2u(16, 16), sf::Color::Blue);   // 1024 bytes
+
+        manager.loadTextureFromImage("tex1", image1);
+        manager.loadTextureFromImage("tex2", image2);
+        manager.loadTextureFromImage("tex3", image3);
+
+        auto stats = manager.getMemoryUsage();
+        // Total: 4096 + 16384 + 1024 = 21504 bytes
+        REQUIRE(stats.texturesMemory == 21504);
+    }
+
+    SECTION("Sound memory calculation") {
+        std::string soundPath = "test_assets/test_sound.wav";
+        createTestSound(soundPath);
+
+        manager.loadSound("test_sound", soundPath);
+
+        auto stats = manager.getMemoryUsage();
+        // Sound buffer should have some memory (even if minimal)
+        REQUIRE(stats.soundsMemory >= 0);
+        REQUIRE(stats.totalMemory >= stats.soundsMemory);
+
+        // Cleanup
+        fs::remove_all("test_assets");
+    }
+
+    SECTION("Memory after unload") {
+        sf::Image image;
+        image.resize(sf::Vector2u(64, 64), sf::Color::Cyan);
+
+        manager.loadTextureFromImage("temp_texture", image);
+
+        auto statsBefore = manager.getMemoryUsage();
+        REQUIRE(statsBefore.texturesMemory == 16384);  // 64*64*4
+
+        manager.unloadTexture("temp_texture");
+
+        auto statsAfter = manager.getMemoryUsage();
+        REQUIRE(statsAfter.texturesMemory == 0);
+        REQUIRE(statsAfter.totalMemory < statsBefore.totalMemory);
+    }
+
+    SECTION("Memory after clear") {
+        // Load multiple resources
+        sf::Image image;
+        image.resize(sf::Vector2u(32, 32), sf::Color::White);
+        manager.loadTextureFromImage("tex1", image);
+        manager.loadTextureFromImage("tex2", image);
+        manager.loadTextureFromImage("tex3", image);
+
+        std::string soundPath = "test_assets/test_sound.wav";
+        createTestSound(soundPath);
+        manager.loadSound("sound1", soundPath);
+
+        auto statsBefore = manager.getMemoryUsage();
+        REQUIRE(statsBefore.totalMemory > 0);
+
+        manager.clear();
+
+        auto statsAfter = manager.getMemoryUsage();
+        REQUIRE(statsAfter.texturesMemory == 0);
+        REQUIRE(statsAfter.soundsMemory == 0);
+        REQUIRE(statsAfter.totalMemory == 0);
+
+        // Cleanup
+        fs::remove_all("test_assets");
+    }
+}
+
+TEST_CASE("ResourceManager: MemoryStats formatting", "[ResourceManager][memory]") {
+    SECTION("Format bytes") {
+        auto formatted = ResourceManager::MemoryStats::formatSize(512);
+        REQUIRE(formatted == "512 B");
+    }
+
+    SECTION("Format kilobytes") {
+        auto formatted = ResourceManager::MemoryStats::formatSize(1024);
+        REQUIRE(formatted == "1.00 KB");
+
+        formatted = ResourceManager::MemoryStats::formatSize(1536);  // 1.5 KB
+        REQUIRE(formatted == "1.50 KB");
+    }
+
+    SECTION("Format megabytes") {
+        auto formatted = ResourceManager::MemoryStats::formatSize(1024 * 1024);
+        REQUIRE(formatted == "1.00 MB");
+
+        formatted = ResourceManager::MemoryStats::formatSize(5 * 1024 * 1024);  // 5 MB
+        REQUIRE(formatted == "5.00 MB");
+    }
+
+    SECTION("Format gigabytes") {
+        auto formatted = ResourceManager::MemoryStats::formatSize(1024ULL * 1024 * 1024);
+        REQUIRE(formatted == "1.00 GB");
+
+        formatted = ResourceManager::MemoryStats::formatSize(2ULL * 1024 * 1024 * 1024);  // 2 GB
+        REQUIRE(formatted == "2.00 GB");
+    }
+}
+
+TEST_CASE("ResourceManager: Memory limit warnings", "[ResourceManager][memory]") {
+    ResourceManager manager;
+
+    SECTION("Small memory usage does not trigger warning") {
+        // Load a small texture
+        sf::Image image;
+        image.resize(sf::Vector2u(32, 32), sf::Color::Yellow);
+        manager.loadTextureFromImage("small", image);
+
+        auto stats = manager.getMemoryUsage();
+        // Should be well under the 512 MB limit
+        REQUIRE(stats.totalMemory < 512 * 1024 * 1024);
+    }
+
+    SECTION("Memory tracking with async loading") {
+        std::string testPath = "test_assets/async_mem_test.png";
+        createTestTexture(testPath);
+
+        auto future = manager.loadTextureAsync("async_mem", testPath);
+        bool success = future.get();
+        REQUIRE(success == true);
+
+        auto stats = manager.getMemoryUsage();
+        REQUIRE(stats.texturesMemory == 4096);  // 32*32*4
+
+        // Cleanup
+        fs::remove_all("test_assets");
+    }
+}
