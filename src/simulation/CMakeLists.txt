@@ -6,9 +6,11 @@ target_sources(Simulation
         # Header-only компоненты
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsComponents.h
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsWorld.h
+        ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsBodyFactory.h
     PRIVATE
         # Исходные файлы
         PhysicsWorld.cpp
+        PhysicsBodyFactory.cpp
         # PhysicsSystem.cpp (будет добавлен позже)
 )
 

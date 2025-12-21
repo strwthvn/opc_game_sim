@@ -10,6 +10,7 @@ if(Catch2_FOUND)
         test_config.cpp
         test_logger.cpp
         test_physics_world.cpp
+        test_physics_body_factory.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
