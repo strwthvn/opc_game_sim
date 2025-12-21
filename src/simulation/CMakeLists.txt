@@ -7,11 +7,12 @@ target_sources(Simulation
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsComponents.h
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsWorld.h
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsBodyFactory.h
+        ${CMAKE_SOURCE_DIR}/include/simulation/systems/PhysicsSystem.h
     PRIVATE
         # Исходные файлы
         PhysicsWorld.cpp
         PhysicsBodyFactory.cpp
-        # PhysicsSystem.cpp (будет добавлен позже)
+        systems/PhysicsSystem.cpp
 )
 
 target_include_directories(Simulation

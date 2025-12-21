@@ -54,8 +54,8 @@
 ### Подзадачи
 
 #### 2.1. Определение компонента
-- [ ] Создать `include/simulation/components/RigidBodyComponent.h`
-- [ ] Определить структуру:
+- [x] Создать `include/simulation/components/RigidBodyComponent.h`
+- [x] Определить структуру:
   ```cpp
   struct RigidBodyComponent {
       b2Body* body = nullptr;
@@ -66,23 +66,23 @@
       bool fixedRotation = false;
   };
   ```
-- [ ] Добавить Doxygen комментарии для полей
+- [x] Добавить Doxygen комментарии для полей
 
 #### 2.2. Фабрика физических тел
-- [ ] Создать `PhysicsBodyFactory` в `include/simulation/PhysicsBodyFactory.h`
-- [ ] Реализовать методы:
+- [x] Создать `PhysicsBodyFactory` в `include/simulation/PhysicsBodyFactory.h`
+- [x] Реализовать методы:
   - `b2Body* createBox(b2World*, const TransformComponent&, const RigidBodyComponent&)`
   - `b2Body* createCircle(b2World*, const TransformComponent&, float radius, const RigidBodyComponent&)`
   - `void destroyBody(b2World*, b2Body*)`
-- [ ] Реализовать конвертацию координат: пиксели ↔ Box2D метры (32 пикселя = 1 метр)
+- [x] Реализовать конвертацию координат: пиксели ↔ Box2D метры (32 пикселя = 1 метр)
 
 #### 2.3. Тесты для RigidBodyComponent
-- [ ] Создать `tests/simulation/RigidBodyComponentTests.cpp`
-- [ ] Тест: Создание Box2D тела через фабрику (box)
-- [ ] Тест: Создание Box2D тела через фабрику (circle)
-- [ ] Тест: Параметры тела (density, friction, restitution) применяются
-- [ ] Тест: Удаление тела не вызывает утечек памяти
-- [ ] Тест: Конвертация координат пиксели ↔ метры корректна
+- [x] Создать `tests/simulation/RigidBodyComponentTests.cpp`
+- [x] Тест: Создание Box2D тела через фабрику (box)
+- [x] Тест: Создание Box2D тела через фабрику (circle)
+- [x] Тест: Параметры тела (density, friction, restitution) применяются
+- [x] Тест: Удаление тела не вызывает утечек памяти
+- [x] Тест: Конвертация координат пиксели ↔ метры корректна
 
 ---
 
@@ -94,28 +94,28 @@
 ### Подзадачи
 
 #### 3.1. Базовая реализация PhysicsSystem
-- [ ] Создать `include/simulation/systems/PhysicsSystem.h`
-- [ ] Реализовать `src/simulation/systems/PhysicsSystem.cpp`
-- [ ] Добавить методы:
+- [x] Создать `include/simulation/systems/PhysicsSystem.h`
+- [x] Реализовать `src/simulation/systems/PhysicsSystem.cpp`
+- [x] Добавить методы:
   - `void init(entt::registry&, PhysicsWorld&)` - создание тел для всех сущностей с RigidBodyComponent
   - `void update(entt::registry&, PhysicsWorld&, float deltaTime)` - шаг симуляции
   - `void syncTransforms(entt::registry&)` - синхронизация позиций/углов из Box2D в TransformComponent
-- [ ] Реализовать fixed timestep для физики (60 Hz)
+- [x] Реализовать fixed timestep для физики (60 Hz)
 
 #### 3.2. Синхронизация трансформаций
-- [ ] При создании тела: позиция из `TransformComponent` → `b2Body`
-- [ ] После шага симуляции: позиция/угол из `b2Body` → `TransformComponent`
-- [ ] Обработка статических тел (не обновлять TransformComponent)
-- [ ] Учет пиксельной системы координат и origin спрайтов (bottom-left)
+- [x] При создании тела: позиция из `TransformComponent` → `b2Body`
+- [x] После шага симуляции: позиция/угол из `b2Body` → `TransformComponent`
+- [x] Обработка статических тел (не обновлять TransformComponent)
+- [x] Учет пиксельной системы координат и origin спрайтов (bottom-left)
 
 #### 3.3. Тесты для PhysicsSystem
-- [ ] Создать `tests/simulation/PhysicsSystemTests.cpp`
-- [ ] Тест: Инициализация создает b2Body для всех сущностей с RigidBodyComponent
-- [ ] Тест: Динамическое тело падает под действием гравитации
-- [ ] Тест: Статическое тело не двигается
-- [ ] Тест: TransformComponent синхронизируется с b2Body после step()
-- [ ] Тест: Кинематическое тело двигается при изменении TransformComponent
-- [ ] Интеграционный тест: Столкновение двух объектов обрабатывается
+- [x] Создать `tests/simulation/PhysicsSystemTests.cpp`
+- [x] Тест: Инициализация создает b2Body для всех сущностей с RigidBodyComponent
+- [x] Тест: Динамическое тело падает под действием гравитации
+- [x] Тест: Статическое тело не двигается
+- [x] Тест: TransformComponent синхронизируется с b2Body после step()
+- [x] Тест: Кинематическое тело двигается при изменении TransformComponent
+- [x] Интеграционный тест: Столкновение двух объектов обрабатывается
 
 ---
 

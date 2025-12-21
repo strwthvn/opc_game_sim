@@ -11,6 +11,7 @@ if(Catch2_FOUND)
         test_logger.cpp
         test_physics_world.cpp
         test_physics_body_factory.cpp
+        test_physics_system.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
