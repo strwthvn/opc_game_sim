@@ -4,6 +4,8 @@
 #include "core/StateManager.h"
 #include "core/InputManager.h"
 #include "core/ResourceManager.h"
+#include "core/SpriteMetadata.h"
+#include "core/AnimationData.h"
 #include "core/Config.h"
 #include "core/systems/RenderSystem.h"
 #include "core/systems/UpdateSystem.h"
@@ -12,6 +14,7 @@
 #include "core/systems/FSMSystem.h"
 #include "core/systems/TilePositionSystem.h"
 #include "core/systems/AnimationSystem.h"
+#include "core/systems/AnimationSystemV2.h"
 #include "core/systems/OverlaySystem.h"
 #include "rendering/TileMapSystem.h"
 #include "core/Components.h"
@@ -295,6 +298,10 @@ void GameState::update(double dt) {
         m_animationSystem->update(m_registry, dt);
     }
 
+    if (m_animationSystemV2) {
+        m_animationSystemV2->update(m_registry, dt);
+    }
+
     if (m_overlaySystem) {
         m_overlaySystem->update(m_registry);
     }
@@ -430,6 +437,7 @@ void GameState::initializeScene() {
     LOG_INFO("Initializing Tile Systems (Milestone 1.3)");
     m_tilePositionSystem = std::make_unique<TilePositionSystem>();
     m_animationSystem = std::make_unique<AnimationSystem>();
+    m_animationSystemV2 = std::make_unique<AnimationSystemV2>();
     m_overlaySystem = std::make_unique<OverlaySystem>();
     m_tileMapSystem = std::make_unique<rendering::TileMapSystem>();
 
@@ -660,30 +668,74 @@ void GameState::createTileTestScene() {
         LOG_INFO("Created 2x2 tile object at (8, 2)");
     }
 
-    // === 4. Анимированный объект ===
+    // === 4. Анимированный объект (с JSON метаданными) ===
     {
-        auto entity = m_registry.create();
+        // Загружаем метаданные спрайта из JSON
+        const auto* metadata = resources->loadSpriteMetadata(
+            "assets/sprites/TEST/testObjAnimation.sprite.json"
+        );
 
-        m_registry.emplace<NameComponent>(entity, "AnimatedObject");
-        m_registry.emplace<TilePositionComponent>(entity, 5, 6, 1, 1);
-        m_registry.emplace<TransformComponent>(entity);  // ИСПРАВЛЕНО: добавлен TransformComponent
+        if (metadata) {
+            LOG_INFO("Loaded sprite metadata: '{}' with {} animations",
+                     metadata->getName(), metadata->getAnimations().size());
 
-        auto& sprite = m_registry.emplace<SpriteComponent>(entity);
-        sprite.textureName = "anim_pulse";
-        sprite.layer = toInt(RenderLayer::Objects);
-        sprite.visible = true;
+            // Создаем AnimationData из метаданных
+            auto animData = AnimationData::createFromMetadata(*metadata);
 
-        // Добавляем анимацию (5 кадров из testObjAnimation.png)
-        auto& anim = m_registry.emplace<AnimationComponent>(entity);
-        anim.currentAnimation = "pulse";
-        anim.frameCount = 5;  // 5 кадров из PNG файла
-        anim.frameWidth = TILE_SIZE;
-        anim.frameHeight = TILE_SIZE;
-        anim.frameDelay = 0.3f;  // ~3 FPS
-        anim.loop = true;
-        anim.playing = true;
+            // Создаем сущность
+            auto entity = m_registry.create();
 
-        LOG_INFO("Created animated object at (5, 6) with 5-frame animation");
+            m_registry.emplace<NameComponent>(entity, "AnimatedObject_JSON");
+            m_registry.emplace<TilePositionComponent>(entity, 5, 6, 1, 1);
+            m_registry.emplace<TransformComponent>(entity);
+
+            // Получаем полный путь к текстуре
+            std::string texturePath = "assets/sprites/TEST/" + metadata->getTexturePath();
+
+            auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+            sprite.textureName = texturePath;
+            sprite.layer = toInt(RenderLayer::Objects);
+            sprite.visible = true;
+
+            // Добавляем новый компонент AnimationComponentV2 с поддержкой JSON
+            auto& anim = m_registry.emplace<AnimationComponentV2>(
+                entity,
+                animData,
+                "running"  // Начинаем с анимации "running"
+            );
+
+            LOG_INFO("Created JSON-based animated object at (5, 6)");
+            LOG_INFO("Available animations:");
+            for (const auto& animName : animData->getAnimationNames()) {
+                LOG_INFO("  - {}", animName);
+            }
+        } else {
+            LOG_WARN("Failed to load sprite metadata, creating fallback object");
+
+            // Fallback: создаем объект со старым AnimationComponent
+            auto entity = m_registry.create();
+
+            m_registry.emplace<NameComponent>(entity, "AnimatedObject_Fallback");
+            m_registry.emplace<TilePositionComponent>(entity, 5, 6, 1, 1);
+            m_registry.emplace<TransformComponent>(entity);
+
+            auto& sprite = m_registry.emplace<SpriteComponent>(entity);
+            sprite.textureName = "anim_pulse";
+            sprite.layer = toInt(RenderLayer::Objects);
+            sprite.visible = true;
+
+            // Используем старый AnimationComponent
+            auto& anim = m_registry.emplace<AnimationComponent>(entity);
+            anim.currentAnimation = "pulse";
+            anim.frameCount = 5;
+            anim.frameWidth = TILE_SIZE;
+            anim.frameHeight = TILE_SIZE;
+            anim.frameDelay = 0.3f;
+            anim.loop = true;
+            anim.playing = true;
+
+            LOG_WARN("Created fallback animated object with old AnimationComponent");
+        }
     }
 
     // === 5. Объект с оверлеем (индикатором) ===

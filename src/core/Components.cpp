@@ -1,4 +1,5 @@
 #include "core/Components.h"
+#include "core/AnimationData.h"
 #include "core/Logger.h"
 #include "core/EventBus.h"
 
@@ -42,6 +43,54 @@ void EntityStateComponent::setState(const std::string& newState, entt::entity en
         StateChangedEvent event(entity, previousState, currentState);
         EventBus::getInstance().publish(event);
     }
+}
+
+// ========== AnimationComponentV2 Implementation ==========
+
+bool AnimationComponentV2::setAnimation(const std::string& name, bool restart) {
+    if (!animationData) {
+        LOG_WARN("AnimationComponentV2::setAnimation: no animation data");
+        return false;
+    }
+
+    if (!animationData->hasAnimation(name)) {
+        LOG_WARN("AnimationComponentV2::setAnimation: animation '{}' not found", name);
+        return false;
+    }
+
+    // Если это та же анимация и не нужно перезапускать
+    if (currentAnimation == name && !restart) {
+        return true;
+    }
+
+    // Переключаем анимацию
+    currentAnimation = name;
+
+    if (restart) {
+        currentFrame = 0;
+        elapsedTime = sf::Time::Zero;
+        playing = true;
+    }
+
+    LOG_DEBUG("AnimationComponentV2: switched to animation '{}'", name);
+    return true;
+}
+
+const AnimationDefinition* AnimationComponentV2::getCurrentAnimationDef() const {
+    if (!animationData || currentAnimation.empty()) {
+        return nullptr;
+    }
+
+    return animationData->getAnimation(currentAnimation);
+}
+
+const AnimationFrameData* AnimationComponentV2::getCurrentFrame() const {
+    const auto* animDef = getCurrentAnimationDef();
+    if (!animDef || currentFrame < 0 || currentFrame >= static_cast<int>(animDef->frames.size())) {
+        return nullptr;
+    }
+
+    return &animDef->frames[currentFrame];
 }
 
 } // namespace core

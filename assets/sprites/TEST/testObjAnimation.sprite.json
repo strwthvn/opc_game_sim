@@ -1,0 +1,78 @@
+{
+  "sprite": {
+    "name": "test_animated_object",
+    "author": "OPC Game Sim Team",
+    "version": "1.0",
+    "created": "2023-11-23",
+    "description": "Animated test object with multiple frames for testing animation system",
+    "texture": "testObjAnimation.png",
+    "size": {
+      "width": 32,
+      "height": 32
+    },
+    "origin": {
+      "x": 0,
+      "y": 32
+    },
+    "tags": [
+      "test",
+      "development",
+      "animated"
+    ],
+    "animations": [
+      {
+        "name": "idle",
+        "frames": [
+          {
+            "x": 0,
+            "y": 0,
+            "duration": 0
+          }
+        ],
+        "loop": false
+      },
+      {
+        "name": "running",
+        "frames": [
+          {
+            "x": 0,
+            "y": 0,
+            "duration": 1000
+          },
+          {
+            "x": 32,
+            "y": 0,
+            "duration": 1000
+          },
+          {
+            "x": 64,
+            "y": 0,
+            "duration": 1000
+          },
+          {
+            "x": 96,
+            "y": 0,
+            "duration": 1000
+          }
+        ],
+        "loop": true
+      },
+      {
+        "name": "jump",
+        "frames": [
+          {
+            "x": 0,
+            "y": 32,
+            "duration": 1500
+          },
+          {
+            "x": 32,
+            "y": 32,
+            "duration": 1500
+          }
+        ],
+        "loop": false
+      }
+    ]
+  }
+}

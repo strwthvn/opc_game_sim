@@ -18,6 +18,7 @@ class CollisionSystem;
 class FSMSystem;
 class TilePositionSystem;
 class AnimationSystem;
+class AnimationSystemV2;
 class OverlaySystem;
 }
 
@@ -109,7 +110,8 @@ private:
 
     // Tile System (Milestone 1.3)
     std::unique_ptr<TilePositionSystem> m_tilePositionSystem;  ///< Система синхронизации тайловых позиций
-    std::unique_ptr<AnimationSystem> m_animationSystem;        ///< Система анимации спрайтов
+    std::unique_ptr<AnimationSystem> m_animationSystem;        ///< Система анимации спрайтов (старая)
+    std::unique_ptr<AnimationSystemV2> m_animationSystemV2;    ///< Система анимации спрайтов V2 (JSON метаданные)
     std::unique_ptr<OverlaySystem> m_overlaySystem;            ///< Система синхронизации оверлеев
     std::unique_ptr<rendering::TileMapSystem> m_tileMapSystem; ///< Система рендеринга тайловых карт (TMX)
 

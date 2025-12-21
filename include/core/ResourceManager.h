@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Audio/SoundBuffer.hpp>
+#include "core/SpriteMetadata.h"
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -345,6 +346,60 @@ public:
      */
     bool hasActiveLoads() const;
 
+    // ========== Метаданные спрайтов ==========
+
+    /**
+     * @brief Загружает метаданные спрайта из .sprite.json файла
+     *
+     * Загружает JSON файл с метаданными спрайта. Автоматически загружает
+     * связанную текстуру, если она еще не загружена.
+     *
+     * @param path Путь к .sprite.json файлу
+     * @return Указатель на метаданные или nullptr если ошибка
+     */
+    const SpriteMetadata* loadSpriteMetadata(const std::string& path);
+
+    /**
+     * @brief Получает метаданные спрайта по имени
+     * @param name Имя спрайта (из поля "name" в JSON)
+     * @return Указатель на метаданные или nullptr если не найдено
+     */
+    const SpriteMetadata* getSpriteMetadata(const std::string& name) const;
+
+    /**
+     * @brief Проверяет, загружены ли метаданные спрайта
+     * @param name Имя спрайта
+     * @return true если метаданные загружены
+     */
+    bool hasSpriteMetadata(const std::string& name) const;
+
+    /**
+     * @brief Выгружает метаданные спрайта
+     * @param name Имя спрайта
+     * @return true если метаданные были выгружены
+     */
+    bool unloadSpriteMetadata(const std::string& name);
+
+    /**
+     * @brief Асинхронно загружает метаданные спрайта
+     *
+     * Загружает метаданные спрайта и связанную текстуру в отдельном потоке.
+     *
+     * @param path Путь к .sprite.json файлу
+     * @return future для проверки статуса загрузки
+     */
+    std::future<bool> loadSpriteMetadataAsync(const std::string& path);
+
+    /**
+     * @brief Возвращает количество загруженных метаданных спрайтов
+     */
+    size_t getSpriteMetadataCount() const { return m_spriteMetadata.size(); }
+
+    /**
+     * @brief Получает список всех загруженных имен спрайтов
+     */
+    std::vector<std::string> getSpriteNames() const;
+
     // ========== Отслеживание памяти ==========
 
     /**
@@ -407,11 +462,13 @@ private:
     std::unordered_map<std::string, sf::Font> m_fonts;          ///< Кеш шрифтов
     std::unordered_map<std::string, sf::Texture> m_textures;    ///< Кеш текстур
     std::unordered_map<std::string, sf::SoundBuffer> m_soundBuffers; ///< Кеш звуковых буферов
+    std::unordered_map<std::string, SpriteMetadata> m_spriteMetadata; ///< Кеш метаданных спрайтов
 
     // Асинхронная загрузка
     mutable std::mutex m_textureMutex;      ///< Мьютекс для безопасного доступа к текстурам
     mutable std::mutex m_fontMutex;         ///< Мьютекс для безопасного доступа к шрифтам
     mutable std::mutex m_soundMutex;        ///< Мьютекс для безопасного доступа к звукам
+    mutable std::mutex m_spriteMutex;       ///< Мьютекс для безопасного доступа к метаданным спрайтов
     mutable std::mutex m_futuresMutex;      ///< Мьютекс для безопасного доступа к futures
 
     std::vector<std::future<void>> m_activeFutures; ///< Активные асинхронные операции

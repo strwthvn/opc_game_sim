@@ -1,0 +1,89 @@
+{
+  "sprite": {
+    "name": "conveyor_belt",
+    "author": "OPC Game Sim Team",
+    "version": "1.0",
+    "created": "2025-12-20",
+    "description": "Industrial conveyor belt with running animation for material transport simulation",
+    "texture": "conveyor_belt.png",
+    "size": {
+      "width": 32,
+      "height": 32
+    },
+    "origin": {
+      "x": 0,
+      "y": 32
+    },
+    "tags": [
+      "industrial",
+      "transport",
+      "animated",
+      "automation"
+    ],
+    "animations": [
+      {
+        "name": "idle",
+        "frames": [
+          {
+            "x": 0,
+            "y": 0,
+            "duration": 0
+          }
+        ],
+        "loop": false
+      },
+      {
+        "name": "running",
+        "frames": [
+          {
+            "x": 0,
+            "y": 0,
+            "duration": 100
+          },
+          {
+            "x": 32,
+            "y": 0,
+            "duration": 100
+          },
+          {
+            "x": 64,
+            "y": 0,
+            "duration": 100
+          },
+          {
+            "x": 96,
+            "y": 0,
+            "duration": 100
+          }
+        ],
+        "loop": true
+      },
+      {
+        "name": "slow",
+        "frames": [
+          {
+            "x": 0,
+            "y": 0,
+            "duration": 200
+          },
+          {
+            "x": 32,
+            "y": 0,
+            "duration": 200
+          },
+          {
+            "x": 64,
+            "y": 0,
+            "duration": 200
+          },
+          {
+            "x": 96,
+            "y": 0,
+            "duration": 200
+          }
+        ],
+        "loop": true
+      }
+    ]
+  }
+}

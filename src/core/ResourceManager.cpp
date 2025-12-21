@@ -354,13 +354,15 @@ void ResourceManager::clear() {
     std::lock_guard<std::mutex> textureLock(m_textureMutex);
     std::lock_guard<std::mutex> fontLock(m_fontMutex);
     std::lock_guard<std::mutex> soundLock(m_soundMutex);
+    std::lock_guard<std::mutex> spriteLock(m_spriteMutex);
 
-    LOG_INFO("Clearing all resources: {} fonts, {} textures, {} sounds ({})",
+    LOG_INFO("Clearing all resources: {} fonts, {} textures, {} sounds, {} sprite metadata ({})",
               m_fonts.size(), m_textures.size(), m_soundBuffers.size(),
-              MemoryStats::formatSize(statsBefore.totalMemory));
+              m_spriteMetadata.size(), MemoryStats::formatSize(statsBefore.totalMemory));
     m_fonts.clear();
     m_textures.clear();
     m_soundBuffers.clear();
+    m_spriteMetadata.clear();
 }
 
 std::string ResourceManager::getSystemFontPath() const {
@@ -847,6 +849,146 @@ void ResourceManager::checkMemoryLimit(const MemoryStats& stats) const {
                  MemoryStats::formatSize(stats.fontsMemory),
                  MemoryStats::formatSize(stats.soundsMemory));
     }
+}
+
+// ========== Метаданные спрайтов ==========
+
+const SpriteMetadata* ResourceManager::loadSpriteMetadata(const std::string& path) {
+    LOG_DEBUG("Loading sprite metadata from: {}", path);
+
+    // Загружаем метаданные из файла
+    auto metadataOpt = SpriteMetadata::loadFromFile(path);
+    if (!metadataOpt.has_value()) {
+        LOG_ERROR("Failed to load sprite metadata from: {}", path);
+        return nullptr;
+    }
+
+    SpriteMetadata metadata = std::move(metadataOpt.value());
+    std::string spriteName = metadata.getName();
+
+    // Автоматически загружаем связанную текстуру, если она еще не загружена
+    std::string texturePath = metadata.getTexturePath();
+    if (!texturePath.empty() && !hasTexture(texturePath)) {
+        // Получаем директорию из пути к .sprite.json
+        std::string directory;
+        size_t lastSlash = path.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            directory = path.substr(0, lastSlash + 1);
+        }
+
+        // Полный путь к текстуре (относительно директории .sprite.json)
+        std::string fullTexturePath = directory + texturePath;
+
+        LOG_DEBUG("Loading associated texture: {}", fullTexturePath);
+        if (!loadTexture(fullTexturePath)) {
+            LOG_WARN("Failed to load associated texture: {}", fullTexturePath);
+        }
+    }
+
+    // Сохраняем метаданные в кеш (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(m_spriteMutex);
+        m_spriteMetadata[spriteName] = std::move(metadata);
+    }
+
+    LOG_INFO("Loaded sprite metadata: '{}' from {}", spriteName, path);
+
+    // Возвращаем указатель на сохраненные метаданные
+    std::lock_guard<std::mutex> lock(m_spriteMutex);
+    return &m_spriteMetadata.at(spriteName);
+}
+
+const SpriteMetadata* ResourceManager::getSpriteMetadata(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_spriteMutex);
+    auto it = m_spriteMetadata.find(name);
+    if (it != m_spriteMetadata.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+bool ResourceManager::hasSpriteMetadata(const std::string& name) const {
+    std::lock_guard<std::mutex> lock(m_spriteMutex);
+    return m_spriteMetadata.find(name) != m_spriteMetadata.end();
+}
+
+bool ResourceManager::unloadSpriteMetadata(const std::string& name) {
+    std::lock_guard<std::mutex> lock(m_spriteMutex);
+    auto it = m_spriteMetadata.find(name);
+    if (it != m_spriteMetadata.end()) {
+        m_spriteMetadata.erase(it);
+        LOG_INFO("Unloaded sprite metadata: '{}'", name);
+        return true;
+    }
+
+    LOG_WARN("Cannot unload sprite metadata '{}': not found", name);
+    return false;
+}
+
+std::future<bool> ResourceManager::loadSpriteMetadataAsync(const std::string& path) {
+    LOG_DEBUG("Starting async sprite metadata load from: {}", path);
+
+    m_activeLoads++;
+
+    return std::async(std::launch::async, [this, path]() -> bool {
+        // Загружаем метаданные
+        auto metadataOpt = SpriteMetadata::loadFromFile(path);
+        if (!metadataOpt.has_value()) {
+            LOG_ERROR("Failed to async load sprite metadata from: {}", path);
+            m_activeLoads--;
+            return false;
+        }
+
+        SpriteMetadata metadata = std::move(metadataOpt.value());
+        std::string spriteName = metadata.getName();
+
+        // Автоматически загружаем связанную текстуру
+        std::string texturePath = metadata.getTexturePath();
+        if (!texturePath.empty() && !isTextureReady(texturePath)) {
+            // Получаем директорию из пути
+            std::string directory;
+            size_t lastSlash = path.find_last_of("/\\");
+            if (lastSlash != std::string::npos) {
+                directory = path.substr(0, lastSlash + 1);
+            }
+
+            std::string fullTexturePath = directory + texturePath;
+
+            LOG_DEBUG("Async loading associated texture: {}", fullTexturePath);
+
+            // Загружаем текстуру синхронно (уже в отдельном потоке)
+            sf::Texture texture;
+            if (texture.loadFromFile(fullTexturePath)) {
+                std::lock_guard<std::mutex> lock(m_textureMutex);
+                m_textures[fullTexturePath] = std::move(texture);
+            } else {
+                LOG_WARN("Failed to async load associated texture: {}", fullTexturePath);
+            }
+        }
+
+        // Сохраняем метаданные в кеш
+        {
+            std::lock_guard<std::mutex> lock(m_spriteMutex);
+            m_spriteMetadata[spriteName] = std::move(metadata);
+        }
+
+        LOG_INFO("Async loaded sprite metadata: '{}' from {}", spriteName, path);
+
+        m_activeLoads--;
+        return true;
+    });
+}
+
+std::vector<std::string> ResourceManager::getSpriteNames() const {
+    std::lock_guard<std::mutex> lock(m_spriteMutex);
+    std::vector<std::string> names;
+    names.reserve(m_spriteMetadata.size());
+
+    for (const auto& [name, metadata] : m_spriteMetadata) {
+        names.push_back(name);
+    }
+
+    return names;
 }
 
 } // namespace core

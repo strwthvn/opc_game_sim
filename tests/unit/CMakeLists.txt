@@ -6,6 +6,7 @@ if(Catch2_FOUND)
         test_fsm_system.cpp
         test_collision_system.cpp
         test_resource_manager.cpp
+        test_sprite_metadata.cpp
         test_config.cpp
         test_logger.cpp
     )

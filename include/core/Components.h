@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/Sprite.hpp>
+#include <SFML/System/Time.hpp>
 #include <entt/entt.hpp>
 #include <string>
 #include <vector>
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <optional>
 #include <functional>
+#include <memory>
 
 namespace core {
 
@@ -193,6 +195,70 @@ struct AnimationComponent {
     }
 
     // Данные анимации будут храниться в отдельном AnimationSystem/AnimationManager
+};
+
+/**
+ * @brief Улучшенный компонент анимации с поддержкой JSON метаданных
+ *
+ * Поддерживает:
+ * - Несколько именованных анимаций ("idle", "running", "jump")
+ * - Разную длительность каждого кадра
+ * - Произвольное расположение кадров в текстуре (не только горизонтально)
+ * - Загрузку из SpriteMetadata JSON
+ *
+ * Использует AnimationData для хранения определений анимаций.
+ */
+struct AnimationComponentV2 {
+    std::shared_ptr<class AnimationData> animationData; ///< Данные всех анимаций (shared между сущностями)
+    std::string currentAnimation;       ///< Имя текущей анимации
+    int currentFrame = 0;               ///< Текущий кадр в анимации
+    sf::Time elapsedTime;               ///< Накопленное время с начала кадра
+    bool playing = true;                ///< Воспроизводится ли анимация
+
+    /**
+     * @brief Конструктор по умолчанию
+     */
+    AnimationComponentV2() = default;
+
+    /**
+     * @brief Конструктор с AnimationData
+     * @param data Данные анимаций
+     * @param initialAnimation Начальная анимация (пустая строка = первая доступная)
+     */
+    explicit AnimationComponentV2(std::shared_ptr<class AnimationData> data,
+                                  const std::string& initialAnimation = "")
+        : animationData(data)
+        , currentAnimation(initialAnimation)
+        , currentFrame(0)
+        , elapsedTime(sf::Time::Zero)
+        , playing(true) {}
+
+    /**
+     * @brief Проверяет, есть ли данные анимации
+     */
+    bool hasAnimationData() const {
+        return animationData != nullptr;
+    }
+
+    /**
+     * @brief Переключает на другую анимацию
+     * @param name Имя анимации
+     * @param restart Перезапустить анимацию с начала (по умолчанию true)
+     * @return true если анимация найдена и переключена
+     */
+    bool setAnimation(const std::string& name, bool restart = true);
+
+    /**
+     * @brief Получает текущее определение анимации
+     * @return Указатель на определение или nullptr
+     */
+    const struct AnimationDefinition* getCurrentAnimationDef() const;
+
+    /**
+     * @brief Получает текущий кадр анимации
+     * @return Указатель на кадр или nullptr
+     */
+    const struct AnimationFrameData* getCurrentFrame() const;
 };
 
 /**

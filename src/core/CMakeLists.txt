@@ -9,6 +9,8 @@ target_sources(Core
         PerformanceMetrics.cpp
         InputManager.cpp
         ResourceManager.cpp
+        SpriteMetadata.cpp
+        AnimationData.cpp
         AudioManager.cpp
         Config.cpp
         Components.cpp
@@ -26,6 +28,7 @@ target_sources(Core
         systems/FSMSystem.cpp
         systems/TilePositionSystem.cpp
         systems/AnimationSystem.cpp
+        systems/AnimationSystemV2.cpp
         systems/OverlaySystem.cpp
         systems/SystemScheduler.cpp
 )
@@ -48,6 +51,7 @@ target_link_libraries(Core
         EnTT::EnTT
         Boost::headers
         yaml-cpp::yaml-cpp
+        nlohmann_json::nlohmann_json
     PRIVATE
 )
 
