@@ -72,7 +72,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # Модули проекта (будут добавлены по мере реализации)
 add_subdirectory(src/core)
-# add_subdirectory(src/simulation)
+add_subdirectory(src/simulation)
 add_subdirectory(src/rendering)
 # add_subdirectory(src/industrial)
 # add_subdirectory(src/scripting)
@@ -88,7 +88,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Core
     Rendering
-#     Simulation
+    Simulation
 #     Industrial
 #     Scripting
 #     Editor

@@ -5,10 +5,11 @@ target_sources(Simulation
     PUBLIC
         # Header-only компоненты
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsComponents.h
+        ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsWorld.h
     PRIVATE
-        # Здесь будут добавлены исходные файлы
-        # PhysicsSystem.cpp
-        # SimulationWorld.cpp
+        # Исходные файлы
+        PhysicsWorld.cpp
+        # PhysicsSystem.cpp (будет добавлен позже)
 )
 
 target_include_directories(Simulation

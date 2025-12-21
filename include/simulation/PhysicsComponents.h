@@ -1,15 +1,18 @@
 #pragma once
 
+#include <box2d/box2d.h>
 #include <SFML/System/Vector2.hpp>
 #include <vector>
 #include <cstddef>
 
 /**
  * @file PhysicsComponents.h
- * @brief Компоненты для интеграции с физическим движком Box2D
+ * @brief Компоненты для интеграции с физическим движком Box2D 3.x
  *
- * Эти компоненты подготовлены для будущей интеграции с Box2D (Phase 2).
- * Они определяют физические свойства объектов и формы коллайдеров.
+ * Эти компоненты определяют физические свойства объектов и формы коллайдеров
+ * для интеграции с Box2D Physics Engine (версия 3.x).
+ *
+ * @note Box2D 3.x использует ID-based API вместо указателей.
  */
 
 namespace simulation {
@@ -151,8 +154,8 @@ struct RigidbodyComponent {
     sf::Vector2f linearVelocity{0.0f, 0.0f};  ///< Начальная линейная скорость (пиксели/сек)
     float angularVelocity = 0.0f;             ///< Начальная угловая скорость (радианы/сек)
 
-    // === Интеграция с Box2D ===
-    void* box2dBody = nullptr;              ///< Указатель на b2Body (nullptr до создания в Box2D)
+    // === Интеграция с Box2D 3.x ===
+    b2BodyId box2dBodyId = b2_nullBodyId;   ///< ID Box2D тела (b2_nullBodyId до создания)
 
     /**
      * @brief Конструктор по умолчанию (динамическое тело с массой 1 кг)
@@ -193,10 +196,10 @@ struct RigidbodyComponent {
 
     /**
      * @brief Проверить, связан ли компонент с Box2D телом
-     * @return true если box2dBody != nullptr
+     * @return true если тело создано в Box2D
      */
     bool hasBox2DBody() const {
-        return box2dBody != nullptr;
+        return B2_IS_NON_NULL(box2dBodyId);
     }
 
     /**

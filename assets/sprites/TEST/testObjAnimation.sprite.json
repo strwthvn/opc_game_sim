@@ -37,22 +37,22 @@
           {
             "x": 0,
             "y": 0,
-            "duration": 1000
+            "duration": 500
           },
           {
             "x": 32,
             "y": 0,
-            "duration": 1000
+            "duration": 500
           },
           {
             "x": 64,
             "y": 0,
-            "duration": 1000
+            "duration": 500
           },
           {
             "x": 96,
             "y": 0,
-            "duration": 1000
+            "duration": 500
           }
         ],
         "loop": true

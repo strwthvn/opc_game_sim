@@ -9,10 +9,12 @@ if(Catch2_FOUND)
         test_sprite_metadata.cpp
         test_config.cpp
         test_logger.cpp
+        test_physics_world.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
         Rendering
+        Simulation
         Core
         Catch2::Catch2WithMain
         SFML::Graphics
@@ -23,6 +25,7 @@ if(Catch2_FOUND)
         yaml-cpp::yaml-cpp
         PkgConfig::TMXLITE
         zstd::libzstd_static
+        box2d::box2d
     )
 
     target_include_directories(UnitTests PRIVATE
