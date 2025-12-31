@@ -17,6 +17,9 @@
 #include "core/systems/AnimationSystemV2.h"
 #include "core/systems/OverlaySystem.h"
 #include "rendering/TileMapSystem.h"
+#include "rendering/PhysicsDebugDraw.h"
+#include "simulation/PhysicsWorld.h"
+#include "simulation/systems/PhysicsSystem.h"
 #include "core/Components.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -110,6 +113,13 @@ bool GameState::handleEvent(const sf::Event& event) {
         if (keyPressed->code == sf::Keyboard::Key::F6) {
             m_debugDrawGrid = !m_debugDrawGrid;
             LOG_INFO("Debug grid: {}", m_debugDrawGrid ? "ON" : "OFF");
+            return true;
+        }
+
+        // F7 - переключение отладочной визуализации физики
+        if (keyPressed->code == sf::Keyboard::Key::F7) {
+            m_debugDrawPhysics = !m_debugDrawPhysics;
+            LOG_INFO("Physics debug: {}", m_debugDrawPhysics ? "ON" : "OFF");
             return true;
         }
     }
@@ -311,7 +321,11 @@ void GameState::update(double dt) {
         m_renderSystem->update(m_registry, dt);
     }
 
-    // TODO: Обновление физики
+    // Обновление физики (Milestone 2.1)
+    if (m_physicsSystem) {
+        m_physicsSystem->update(m_registry, dt);
+    }
+
     // TODO: Обновление OPC UA привязок
 
     // Обновляем информационный текст
@@ -325,6 +339,8 @@ void GameState::update(double dt) {
         oss << "\nControls:\n";
         oss << "WASD/Arrows - Move Camera\n";
         oss << "Mouse Wheel - Zoom\n";
+        oss << "F6 - Toggle Grid\n";
+        oss << "F7 - Toggle Physics Debug\n";
         oss << "ESC/P - Pause\n";
         oss << "Q - Back to Menu";
 
@@ -388,6 +404,13 @@ void GameState::render(sf::RenderWindow& window) {
         drawDebugGrid(window);
     }
 
+    // Отладочная визуализация физики (Milestone 2.1)
+    if (m_debugDrawPhysics && m_physicsWorld && m_physicsDebugDraw) {
+        m_physicsDebugDraw->begin(&window);
+        b2World_Draw(m_physicsWorld->getWorldId(), &m_physicsDebugDraw->getDebugDraw());
+        m_physicsDebugDraw->end();
+    }
+
     // Переключаемся на UI View для рендеринга интерфейса
     window.setView(m_uiView);
 
@@ -440,6 +463,13 @@ void GameState::initializeScene() {
     m_animationSystemV2 = std::make_unique<AnimationSystemV2>();
     m_overlaySystem = std::make_unique<OverlaySystem>();
     m_tileMapSystem = std::make_unique<rendering::TileMapSystem>();
+
+    // Инициализация физики (Milestone 2.1)
+    LOG_INFO("Initializing Physics (Milestone 2.1)");
+    m_physicsWorld = std::make_unique<simulation::PhysicsWorld>(b2Vec2{0.0f, 9.8f});
+    m_physicsSystem = std::make_unique<simulation::PhysicsSystem>(*m_physicsWorld);
+    m_physicsSystem->init(m_registry);
+    m_physicsDebugDraw = std::make_unique<rendering::PhysicsDebugDraw>();
 
     // Создание программной тестовой текстуры (простой красный квадрат)
     LOG_INFO("Creating test texture");

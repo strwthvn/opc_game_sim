@@ -52,6 +52,8 @@ target_link_libraries(Core
         Boost::headers
         yaml-cpp::yaml-cpp
         nlohmann_json::nlohmann_json
+        Simulation
+        Rendering
     PRIVATE
 )
 

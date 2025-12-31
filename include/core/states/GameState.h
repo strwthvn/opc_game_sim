@@ -22,8 +22,14 @@ class AnimationSystemV2;
 class OverlaySystem;
 }
 
+namespace simulation {
+class PhysicsWorld;
+class PhysicsSystem;
+}
+
 namespace rendering {
 class TileMapSystem;
+class PhysicsDebugDraw;
 }
 
 namespace core {
@@ -122,8 +128,14 @@ private:
     // Управление камерой (константы заменены на Config)
     float m_cameraZoom;                        ///< Текущий зум камеры
 
+    // Physics (Milestone 2.1)
+    std::unique_ptr<simulation::PhysicsWorld> m_physicsWorld;    ///< Физический мир Box2D
+    std::unique_ptr<simulation::PhysicsSystem> m_physicsSystem;  ///< Система физики
+
     // Отладочная визуализация
-    bool m_debugDrawGrid;                      ///< Флаг отрисовки тайловой сетки
+    bool m_debugDrawGrid;                      ///< Флаг отрисовки тайловой сетки (F6)
+    bool m_debugDrawPhysics = false;           ///< Флаг отрисовки физики (F7)
+    std::unique_ptr<rendering::PhysicsDebugDraw> m_physicsDebugDraw;  ///< Debug draw для Box2D
     void drawDebugGrid(sf::RenderWindow& window);  ///< Отрисовка отладочной сетки
 
     // Размеры и позиции UI (в координатах фиксированного UI View)

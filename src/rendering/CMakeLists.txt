@@ -4,6 +4,7 @@ add_library(Rendering STATIC)
 target_sources(Rendering
     PRIVATE
         TileMapSystem.cpp
+        PhysicsDebugDraw.cpp
         # RenderSystem.cpp
         # Camera.cpp
         # SpriteRenderer.cpp
@@ -19,6 +20,7 @@ target_include_directories(Rendering
 target_link_libraries(Rendering
     PUBLIC
         Core
+        Simulation
         SFML::Graphics
         PkgConfig::TMXLITE
         EnTT::EnTT

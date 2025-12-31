@@ -178,35 +178,37 @@
 ### Подзадачи
 
 #### 5.1. DebugDraw для Box2D
-- [ ] Создать класс `PhysicsDebugDraw` в `include/rendering/PhysicsDebugDraw.h`
-- [ ] Наследовать от `b2Draw`
-- [ ] Переопределить методы:
-  - `DrawPolygon(const b2Vec2*, int32, const b2Color&)`
-  - `DrawSolidPolygon(const b2Vec2*, int32, const b2Color&)`
-  - `DrawCircle(const b2Vec2&, float, const b2Color&)`
-  - `DrawSolidCircle(const b2Vec2&, float, const b2Vec2&, const b2Color&)`
-  - `DrawSegment(const b2Vec2&, const b2Vec2&, const b2Color&)`
-  - `DrawPoint(const b2Vec2&, float, const b2Color&)`
-- [ ] Использовать `sf::VertexArray` для рендеринга примитивов
+- [x] Создать класс `PhysicsDebugDraw` в `include/rendering/PhysicsDebugDraw.h`
+- [x] Реализовать callback-based API для Box2D 3.x (b2DebugDraw структура с function pointers)
+- [x] Реализовать методы:
+  - `DrawPolygon` - контур полигона
+  - `DrawSolidPolygon` - заполненный полигон с контуром
+  - `DrawCircle` / `DrawSolidCircle` - круги
+  - `DrawCapsule` - капсулы
+  - `DrawSegment` - отрезки
+  - `DrawTransform` - оси координат
+  - `DrawPoint` - точки
+- [x] Использовать `sf::VertexArray` для рендеринга примитивов (batching)
 
-#### 5.2. Интеграция с RenderSystem
-- [ ] Добавить флаг `bool drawPhysicsDebug` в `RenderSystem`
-- [ ] Реализовать `void renderPhysicsDebug(sf::RenderWindow&, PhysicsWorld&)`
-- [ ] Добавить горячую клавишу **F7** для переключения debug draw
-- [ ] Рендерить после основного слоя спрайтов
+#### 5.2. Интеграция с GameState
+- [x] Добавить флаг `bool m_debugDrawPhysics` в `GameState`
+- [x] Реализовать рендеринг через `b2World_Draw()` в `GameState::render()`
+- [x] Добавить горячую клавишу **F7** для переключения debug draw
+- [x] Рендерить после основного слоя спрайтов, перед UI
 
 #### 5.3. Визуализация дополнительной информации
-- [ ] Отрисовка центра масс (зеленая точка)
-- [ ] Отрисовка AABB коллайдеров (желтый прямоугольник)
-- [ ] Отрисовка контактных точек (красные точки)
-- [ ] Отрисовка векторов скорости (синие стрелки)
+- [x] Отрисовка центра масс (через setDrawMass)
+- [x] Отрисовка AABB коллайдеров (через setDrawBounds)
+- [x] Отрисовка контактных точек (через setDrawContacts)
+- [ ] Отрисовка векторов скорости (синие стрелки) - TODO для следующей итерации
 
 #### 5.4. Тесты для DebugDraw
-- [ ] Создать `tests/rendering/PhysicsDebugDrawTests.cpp`
-- [ ] Тест: PhysicsDebugDraw создается без ошибок
-- [ ] Тест: Методы Draw* вызываются Box2D (mock тест)
-- [ ] Визуальный тест (ручной): Создать сцену с несколькими телами и проверить визуализацию
-- [ ] Тест: Переключение F7 работает корректно
+- [x] Создать `tests/unit/test_physics_debug_draw.cpp`
+- [x] Тест: PhysicsDebugDraw создается без ошибок
+- [x] Тест: Все function pointers установлены
+- [x] Тест: Флаги конфигурации работают корректно
+- [x] Тест: begin/end не вызывают крашей
+- [x] Интеграционный тест с Box2D миром
 
 ---
 

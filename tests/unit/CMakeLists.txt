@@ -13,12 +13,13 @@ if(Catch2_FOUND)
         test_physics_world.cpp
         test_physics_body_factory.cpp
         test_physics_system.cpp
+        test_physics_debug_draw.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
+        Core
         Rendering
         Simulation
-        Core
         Catch2::Catch2WithMain
         SFML::Graphics
         SFML::System
