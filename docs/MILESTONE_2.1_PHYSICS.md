@@ -122,54 +122,51 @@
 ## Задача 4: Коллизии и триггеры
 
 ### Описание
-Реализовать обработку столкновений и триггерных зон с использованием Box2D contact listener.
+Реализовать обработку столкновений и триггерных зон с использованием Box2D 3.x event system.
+
+**Примечание:** Box2D 3.x использует event-based подход вместо callback-based (b2ContactListener).
+События буферизируются во время симуляции и доступны после каждого шага.
 
 ### Подзадачи
 
-#### 4.1. Компонент ColliderComponent
-- [ ] Создать `include/simulation/components/ColliderComponent.h`
-- [ ] Определить структуру:
-  ```cpp
-  struct ColliderComponent {
-      enum class Type { Box, Circle, Polygon };
-      Type type = Type::Box;
-      sf::Vector2f size{32.0f, 32.0f}; // для Box
-      float radius = 16.0f;            // для Circle
-      bool isTrigger = false;
-      uint16_t categoryBits = 0x0001;
-      uint16_t maskBits = 0xFFFF;
-  };
-  ```
-- [ ] Документировать поля (Doxygen)
+#### 4.1. Компонент ColliderComponent (фильтрация коллизий)
+- [x] ColliderComponent уже существует в `include/simulation/PhysicsComponents.h`
+- [x] Добавить поля для фильтрации коллизий:
+  - `uint16_t categoryBits` - категория этого коллайдера
+  - `uint16_t maskBits` - маска категорий для фильтрации
+  - `int16_t groupIndex` - группа коллизий
+- [x] Документировать поля (Doxygen)
 
-#### 4.2. ContactListener для событий коллизий
-- [ ] Создать `PhysicsContactListener` в `include/simulation/PhysicsContactListener.h`
-- [ ] Наследовать от `b2ContactListener`
-- [ ] Переопределить методы:
-  - `BeginContact(b2Contact*)` - начало столкновения
-  - `EndContact(b2Contact*)` - конец столкновения
-  - `PreSolve(b2Contact*, const b2Manifold*)` - перед разрешением
-  - `PostSolve(b2Contact*, const b2ContactImpulse*)` - после разрешения
-- [ ] Использовать `b2Body::GetUserData()` для получения `entt::entity`
+#### 4.2. PhysicsEventProcessor для событий коллизий (Box2D 3.x)
+- [x] Создать `PhysicsEventProcessor` в `include/simulation/PhysicsEventProcessor.h`
+- [x] Реализовать обработку Box2D 3.x событий:
+  - `b2ContactBeginTouchEvent` - начало столкновения
+  - `b2ContactEndTouchEvent` - конец столкновения
+  - `b2ContactHitEvent` - высокоскоростное столкновение
+  - `b2SensorBeginTouchEvent` - вход в триггер
+  - `b2SensorEndTouchEvent` - выход из триггера
+- [x] Использовать `b2Body_GetUserData()` для получения `entt::entity`
+- [x] Включить генерацию событий в `b2ShapeDef` (enableContactEvents, enableSensorEvents, enableHitEvents)
 
 #### 4.3. Система событий коллизий
-- [ ] Определить события в `include/simulation/events/CollisionEvents.h`:
+- [x] Определить события в `include/simulation/events/CollisionEvents.h`:
   ```cpp
-  struct CollisionBeginEvent { entt::entity a; entt::entity b; };
-  struct CollisionEndEvent { entt::entity a; entt::entity b; };
-  struct TriggerEnterEvent { entt::entity trigger; entt::entity other; };
-  struct TriggerExitEvent { entt::entity trigger; entt::entity other; };
+  struct CollisionBeginEvent { entt::entity entityA, entityB; ... };
+  struct CollisionEndEvent { entt::entity entityA, entityB; ... };
+  struct CollisionHitEvent { entt::entity entityA, entityB; float approachSpeed; ... };
+  struct TriggerEnterEvent { entt::entity triggerEntity, otherEntity; ... };
+  struct TriggerExitEvent { entt::entity triggerEntity, otherEntity; ... };
   ```
-- [ ] Интегрировать `boost::signals2` для отправки событий
-- [ ] Обновить `PhysicsContactListener` для отправки событий
+- [x] Интегрировать `boost::signals2` для отправки событий (CollisionSignals)
+- [x] PhysicsEventProcessor отправляет события через сигналы
 
 #### 4.4. Тесты для коллизий
-- [ ] Создать `tests/simulation/CollisionTests.cpp`
-- [ ] Тест: BeginContact вызывается при столкновении двух динамических тел
-- [ ] Тест: EndContact вызывается при разделении тел
-- [ ] Тест: TriggerEnterEvent отправляется для триггерных коллайдеров
-- [ ] Тест: Фильтрация коллизий по categoryBits/maskBits работает
-- [ ] Интеграционный тест: Объект падает на платформу и останавливается
+- [x] Создать `tests/unit/test_collision_events.cpp`
+- [x] Тест: CollisionBeginEvent генерируется при столкновении двух тел
+- [x] Тест: CollisionEndEvent генерируется при разделении тел
+- [x] Тест: TriggerEnterEvent отправляется для триггерных коллайдеров
+- [x] Тест: Фильтрация коллизий по categoryBits/maskBits работает
+- [x] Интеграционный тест: Объект падает на платформу и генерирует событие
 
 ---
 

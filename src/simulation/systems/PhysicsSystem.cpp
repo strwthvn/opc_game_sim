@@ -186,6 +186,11 @@ void PhysicsSystem::createBody(entt::registry& registry, entt::entity entity) {
     bodyDef.linearVelocity = PhysicsWorld::pixelsToMeters(b2Vec2{linearVel.x, linearVel.y});
     bodyDef.angularVelocity = rigidbody.angularVelocity;
 
+    // Сохраняем entity в userData для получения из Box2D событий
+    // Добавляем 1 к entity чтобы избежать nullptr для entity = 0
+    // При извлечении нужно вычитать 1
+    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(entity) + 1);
+
     // Создаём тело в Box2D
     b2BodyId bodyId = b2CreateBody(m_physicsWorld.getWorldId(), &bodyDef);
 
@@ -261,6 +266,20 @@ b2ShapeDef PhysicsSystem::createShapeFromCollider(const ColliderComponent& colli
     shapeDef.material.friction = collider.friction;
     shapeDef.material.restitution = collider.restitution;
     shapeDef.isSensor = collider.isSensor;
+
+    // Фильтрация коллизий
+    shapeDef.filter.categoryBits = collider.categoryBits;
+    shapeDef.filter.maskBits = collider.maskBits;
+    shapeDef.filter.groupIndex = collider.groupIndex;
+
+    // Включаем генерацию событий (Box2D 3.x)
+    // enableContactEvents: события начала/конца контакта (для kinematic/dynamic)
+    // enableSensorEvents: события сенсоров (должно быть включено на ОБОИХ shapes -
+    //                     и на sensor, и на visitor - для генерации событий)
+    // enableHitEvents: события высокоскоростных столкновений
+    shapeDef.enableContactEvents = true;
+    shapeDef.enableSensorEvents = true;  // Включаем для всех shapes
+    shapeDef.enableHitEvents = true;
 
     return shapeDef;
 }
