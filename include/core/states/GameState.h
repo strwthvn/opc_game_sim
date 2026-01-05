@@ -25,6 +25,7 @@ class OverlaySystem;
 namespace simulation {
 class PhysicsWorld;
 class PhysicsSystem;
+class PhysicsThread;
 }
 
 namespace rendering {
@@ -131,6 +132,7 @@ private:
     // Physics (Milestone 2.1)
     std::unique_ptr<simulation::PhysicsWorld> m_physicsWorld;    ///< Физический мир Box2D
     std::unique_ptr<simulation::PhysicsSystem> m_physicsSystem;  ///< Система физики
+    std::unique_ptr<simulation::PhysicsThread> m_physicsThread;  ///< Поток физики (Task 6)
 
     // Отладочная визуализация
     bool m_debugDrawGrid;                      ///< Флаг отрисовки тайловой сетки (F6)

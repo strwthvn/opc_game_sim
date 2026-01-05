@@ -20,6 +20,7 @@
 #include "rendering/PhysicsDebugDraw.h"
 #include "simulation/PhysicsWorld.h"
 #include "simulation/systems/PhysicsSystem.h"
+#include "simulation/PhysicsThread.h"
 #include "core/Components.h"
 #include "core/Logger.h"
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -90,6 +91,13 @@ void GameState::onEnter() {
 
 void GameState::onExit() {
     LOG_INFO("Exiting GameState");
+
+    // Останавливаем поток физики перед выходом (Task 6.3)
+    if (m_physicsThread) {
+        LOG_INFO("Stopping physics thread...");
+        m_physicsThread->stop();
+        LOG_INFO("Physics thread stopped");
+    }
 }
 
 void GameState::onWindowResize(const sf::Vector2u& newSize) {
@@ -322,7 +330,14 @@ void GameState::update(double dt) {
     }
 
     // Обновление физики (Milestone 2.1)
-    if (m_physicsSystem) {
+    // При использовании PhysicsThread физика обновляется в отдельном потоке,
+    // здесь только синхронизируем трансформации через double buffering (Task 6.2)
+    if (m_physicsThread && m_physicsThread->isRunning()) {
+        // Swap буферов и применение трансформаций из потока физики
+        m_physicsThread->swapTransformBuffers();
+        m_physicsThread->applyTransformsToRegistry();
+    } else if (m_physicsSystem) {
+        // Fallback: если поток не запущен, обновляем синхронно
         m_physicsSystem->update(m_registry, dt);
     }
 
@@ -336,6 +351,19 @@ void GameState::update(double dt) {
         oss << "Updates: " << m_updateCount << "\n";
         oss << "Entities: " << m_registry.storage<entt::entity>().size() << "\n";
         oss << "Camera Zoom: " << std::fixed << std::setprecision(2) << m_cameraZoom << "x\n";
+
+        // Информация о потоке физики (Task 6)
+        if (m_physicsThread) {
+            oss << "Physics: " << (m_physicsThread->isRunning() ? "Running" : "Stopped");
+            if (m_physicsThread->isPaused()) {
+                oss << " (Paused)";
+            }
+            oss << "\n";
+            oss << "Physics Steps: " << m_physicsThread->getStepCount() << "\n";
+            oss << "Step Time: " << std::fixed << std::setprecision(2)
+                << m_physicsThread->getAverageStepTime() << "ms\n";
+        }
+
         oss << "\nControls:\n";
         oss << "WASD/Arrows - Move Camera\n";
         oss << "Mouse Wheel - Zoom\n";
@@ -470,6 +498,24 @@ void GameState::initializeScene() {
     m_physicsSystem = std::make_unique<simulation::PhysicsSystem>(*m_physicsWorld);
     m_physicsSystem->init(m_registry);
     m_physicsDebugDraw = std::make_unique<rendering::PhysicsDebugDraw>();
+
+    // Инициализация потока физики (Task 6.3)
+    LOG_INFO("Initializing Physics Thread (Task 6)");
+    m_physicsThread = std::make_unique<simulation::PhysicsThread>(
+        *m_physicsWorld, *m_physicsSystem, m_registry
+    );
+
+    // Устанавливаем обработчик исключений для потока физики
+    m_physicsThread->setExceptionHandler([](const std::exception& e) {
+        LOG_ERROR("Physics thread exception: {}", e.what());
+    });
+
+    // Запускаем поток физики
+    if (m_physicsThread->start()) {
+        LOG_INFO("Physics thread started successfully");
+    } else {
+        LOG_ERROR("Failed to start physics thread");
+    }
 
     // Создание программной тестовой текстуры (простой красный квадрат)
     LOG_INFO("Creating test texture");

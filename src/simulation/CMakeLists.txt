@@ -8,6 +8,8 @@ target_sources(Simulation
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsWorld.h
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsBodyFactory.h
         ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsEventProcessor.h
+        ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsThread.h
+        ${CMAKE_SOURCE_DIR}/include/simulation/PhysicsTransformBuffer.h
         ${CMAKE_SOURCE_DIR}/include/simulation/events/CollisionEvents.h
         ${CMAKE_SOURCE_DIR}/include/simulation/systems/PhysicsSystem.h
     PRIVATE
@@ -15,6 +17,8 @@ target_sources(Simulation
         PhysicsWorld.cpp
         PhysicsBodyFactory.cpp
         PhysicsEventProcessor.cpp
+        PhysicsThread.cpp
+        PhysicsTransformBuffer.cpp
         systems/PhysicsSystem.cpp
 )
 

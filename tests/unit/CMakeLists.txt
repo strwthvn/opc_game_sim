@@ -14,6 +14,7 @@ if(Catch2_FOUND)
         test_physics_body_factory.cpp
         test_physics_system.cpp
         test_physics_debug_draw.cpp
+        test_physics_thread.cpp
     )
 
     target_link_libraries(UnitTests PRIVATE
